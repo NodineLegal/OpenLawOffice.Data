@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="Document.cs" company="Nodine Legal, LLC">
+// <copyright file="EventAssignedContact.cs" company="Nodine Legal, LLC">
 // Licensed to Nodine Legal, LLC under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -19,27 +19,33 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace OpenLawOffice.Data.DBOs.Documents
+namespace OpenLawOffice.Data.DBOs.Events
 {
     using System;
     using AutoMapper;
 
     /// <summary>
-    /// TODO: Update summary.
+    /// Relates a contact to an event
     /// </summary>
     [Common.Models.MapMe]
-    public class Document : Core
+    public class EventAssignedContact : Core
     {
         [ColumnMapping(Name = "id")]
         public Guid Id { get; set; }
 
-        [ColumnMapping(Name = "title")]
-        public string Title { get; set; }
+        [ColumnMapping(Name = "event_id")]
+        public Guid EventId { get; set; }
+
+        [ColumnMapping(Name = "contact_id")]
+        public int ContactId { get; set; }
+
+        [ColumnMapping(Name = "role")]
+        public string Role { get; set; }
 
         public void BuildMappings()
         {
-            Dapper.SqlMapper.SetTypeMap(typeof(Document), new ColumnAttributeTypeMapper<Document>());
-            Mapper.CreateMap<DBOs.Documents.Document, Common.Models.Documents.Document>()
+            Dapper.SqlMapper.SetTypeMap(typeof(EventAssignedContact), new ColumnAttributeTypeMapper<EventAssignedContact>());
+            Mapper.CreateMap<DBOs.Events.EventAssignedContact, Common.Models.Events.EventAssignedContact>()
                 .ForMember(dst => dst.IsStub, opt => opt.UseValue(false))
                 .ForMember(dst => dst.Created, opt => opt.ResolveUsing(db =>
                 {
@@ -79,9 +85,25 @@ namespace OpenLawOffice.Data.DBOs.Documents
                     };
                 }))
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title));
+                .ForMember(dst => dst.Event, opt => opt.ResolveUsing(db =>
+                {
+                    return new Common.Models.Events.Event()
+                    {
+                        Id = db.EventId,
+                        IsStub = true
+                    };
+                }))
+                .ForMember(dst => dst.Contact, opt => opt.ResolveUsing(db =>
+                {
+                    return new Common.Models.Contacts.Contact()
+                    {
+                        Id = db.ContactId,
+                        IsStub = true
+                    };
+                }))
+                .ForMember(dst => dst.Role, opt => opt.MapFrom(src => src.Role));
 
-            Mapper.CreateMap<Common.Models.Documents.Document, DBOs.Documents.Document>()
+            Mapper.CreateMap<Common.Models.Events.EventAssignedContact, DBOs.Events.EventAssignedContact>()
                 .ForMember(dst => dst.UtcCreated, opt => opt.ResolveUsing(db =>
                 {
                     return db.Created.ToDbTime();
@@ -112,7 +134,21 @@ namespace OpenLawOffice.Data.DBOs.Documents
                     return model.DisabledBy.Id;
                 }))
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title));
+                .ForMember(dst => dst.EventId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.Event != null)
+                        return model.Event.Id;
+                    else
+                        return null;
+                }))
+                .ForMember(dst => dst.ContactId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.Contact != null)
+                        return model.Contact.Id;
+                    else
+                        return null;
+                }))
+                .ForMember(dst => dst.Role, opt => opt.MapFrom(src => src.Role));
         }
     }
 }

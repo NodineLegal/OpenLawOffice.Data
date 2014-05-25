@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="FileStorageSettings.cs" company="Nodine Legal, LLC">
+// <copyright file="DateTimeExtensions.cs" company="Nodine Legal, LLC">
 // Licensed to Nodine Legal, LLC under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -21,37 +21,35 @@
 
 namespace OpenLawOffice.Data
 {
-    using System.Configuration;
+    using System;
 
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    public class FileStorageSettings : ConfigurationSection
+    public static class DateTimeExtensions
     {
-        [ConfigurationProperty("currentVersionPath", IsRequired = true)]
-        public string CurrentVersionPath
+        public static DateTime ToSystemTime(this DateTime value)
         {
-            get { return (string)this["currentVersionPath"]; }
-            set { this["currentVersionPath"] = value; }
+            TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById(Common.Settings.Manager.Instance.System.Timezone);
+            return TimeZoneInfo.ConvertTimeFromUtc(value, tzi);
         }
 
-        [ConfigurationProperty("previousVersionsPath", IsRequired = true)]
-        public string PreviousVersionsPath
+        public static DateTime? ToSystemTime(this DateTime? value)
         {
-            get { return (string)this["previousVersionsPath"]; }
-            set { this["previousVersionsPath"] = value; }
+            if (!value.HasValue) return null;
+            TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById(Common.Settings.Manager.Instance.System.Timezone);
+            return TimeZoneInfo.ConvertTimeFromUtc(value.Value, tzi);
         }
 
-        [ConfigurationProperty("tempPath", IsRequired = true)]
-        public string TempPath
+        public static DateTime ToDbTime(this DateTime value)
         {
-            get { return (string)this["tempPath"]; }
-            set { this["tempPath"] = value; }
+            return TimeZoneInfo.ConvertTimeToUtc(value);
         }
 
-        public static FileStorageSettings Load()
+        public static DateTime? ToDbTime(this DateTime? value)
         {
-            return (FileStorageSettings)System.Configuration.ConfigurationManager.GetSection("fileStorageSettings");
+            if (!value.HasValue) return null;
+            return TimeZoneInfo.ConvertTimeToUtc(value.Value);
         }
     }
 }

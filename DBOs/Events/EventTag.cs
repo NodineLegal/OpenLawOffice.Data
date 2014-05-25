@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="Document.cs" company="Nodine Legal, LLC">
+// <copyright file="EventTag.cs" company="Nodine Legal, LLC">
 // Licensed to Nodine Legal, LLC under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -19,7 +19,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace OpenLawOffice.Data.DBOs.Documents
+namespace OpenLawOffice.Data.DBOs.Events
 {
     using System;
     using AutoMapper;
@@ -28,18 +28,18 @@ namespace OpenLawOffice.Data.DBOs.Documents
     /// TODO: Update summary.
     /// </summary>
     [Common.Models.MapMe]
-    public class Document : Core
+    public class EventTag : Tagging.TagBase
     {
         [ColumnMapping(Name = "id")]
         public Guid Id { get; set; }
 
-        [ColumnMapping(Name = "title")]
-        public string Title { get; set; }
+        [ColumnMapping(Name = "event_id")]
+        public Guid EventId { get; set; }
 
         public void BuildMappings()
         {
-            Dapper.SqlMapper.SetTypeMap(typeof(Document), new ColumnAttributeTypeMapper<Document>());
-            Mapper.CreateMap<DBOs.Documents.Document, Common.Models.Documents.Document>()
+            Dapper.SqlMapper.SetTypeMap(typeof(EventTag), new ColumnAttributeTypeMapper<EventTag>());
+            Mapper.CreateMap<DBOs.Events.EventTag, Common.Models.Events.EventTag>()
                 .ForMember(dst => dst.IsStub, opt => opt.UseValue(false))
                 .ForMember(dst => dst.Created, opt => opt.ResolveUsing(db =>
                 {
@@ -79,9 +79,28 @@ namespace OpenLawOffice.Data.DBOs.Documents
                     };
                 }))
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title));
+                .ForMember(dst => dst.Event, opt => opt.ResolveUsing(db =>
+                {
+                    return new Common.Models.Events.Event()
+                    {
+                        Id = db.EventId,
+                        IsStub = true
+                    };
+                }))
+                .ForMember(dst => dst.TagCategory, opt => opt.ResolveUsing(db =>
+                {
+                    if (!db.TagCategoryId.HasValue || db.TagCategoryId.Value < 1)
+                        return null;
 
-            Mapper.CreateMap<Common.Models.Documents.Document, DBOs.Documents.Document>()
+                    return new Common.Models.Tagging.TagCategory()
+                    {
+                        Id = db.TagCategoryId.Value,
+                        IsStub = true
+                    };
+                }))
+                .ForMember(dst => dst.Tag, opt => opt.MapFrom(src => src.Tag));
+
+            Mapper.CreateMap<Common.Models.Events.EventTag, DBOs.Events.EventTag>()
                 .ForMember(dst => dst.UtcCreated, opt => opt.ResolveUsing(db =>
                 {
                     return db.Created.ToDbTime();
@@ -112,7 +131,19 @@ namespace OpenLawOffice.Data.DBOs.Documents
                     return model.DisabledBy.Id;
                 }))
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title));
+                .ForMember(dst => dst.EventId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.Event == null || !model.Event.Id.HasValue)
+                        throw new Exception("Event cannot be null");
+                    return model.Event.Id.Value;
+                }))
+                .ForMember(dst => dst.TagCategoryId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.TagCategory == null)
+                        return null;
+                    return model.TagCategory.Id;
+                }))
+                .ForMember(dst => dst.Tag, opt => opt.MapFrom(src => src.Tag));
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="TaskTag.cs" company="Nodine Legal, LLC">
+// <copyright file="EventTag.cs" company="Nodine Legal, LLC">
 // Licensed to Nodine Legal, LLC under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -19,7 +19,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace OpenLawOffice.Data.Tasks
+namespace OpenLawOffice.Data.Events
 {
     using System;
     using System.Collections.Generic;
@@ -31,13 +31,13 @@ namespace OpenLawOffice.Data.Tasks
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    public static class TaskTag
+    public static class EventTag
     {
-        public static Common.Models.Tasks.TaskTag Get(Guid id)
+        public static Common.Models.Events.EventTag Get(Guid id)
         {
-            Common.Models.Tasks.TaskTag model =
-                DataHelper.Get<Common.Models.Tasks.TaskTag, DBOs.Tasks.TaskTag>(
-                "SELECT * FROM \"task_tag\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
+            Common.Models.Events.EventTag model =
+                DataHelper.Get<Common.Models.Events.EventTag, DBOs.Events.EventTag>(
+                "SELECT * FROM \"event_tag\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
                 new { id = id });
 
             if (model == null) return null;
@@ -48,18 +48,18 @@ namespace OpenLawOffice.Data.Tasks
             return model;
         }
 
-        public static List<Common.Models.Tasks.TaskTag> List()
+        public static List<Common.Models.Events.EventTag> List()
         {
-            return DataHelper.List<Common.Models.Tasks.TaskTag, DBOs.Tasks.TaskTag>(
-                "SELECT * FROM \"task_tag\" WHERE \"utc_disabled\" is null");
+            return DataHelper.List<Common.Models.Events.EventTag, DBOs.Events.EventTag>(
+                "SELECT * FROM \"event_tag\" WHERE \"utc_disabled\" is null");
         }
 
-        public static List<Common.Models.Tasks.TaskTag> ListForTask(long taskId)
+        public static List<Common.Models.Events.EventTag> ListForEvent(Guid eventId)
         {
-            List<Common.Models.Tasks.TaskTag> list =
-                DataHelper.List<Common.Models.Tasks.TaskTag, DBOs.Tasks.TaskTag>(
-                "SELECT * FROM \"task_tag\" WHERE \"task_id\"=@TaskId AND \"utc_disabled\" is null",
-                new { TaskId = taskId });
+            List<Common.Models.Events.EventTag> list =
+                DataHelper.List<Common.Models.Events.EventTag, DBOs.Events.EventTag>(
+                "SELECT * FROM \"event_tag\" WHERE \"event_id\"=@EventId AND \"utc_disabled\" is null",
+                new { EventId = eventId });
 
             list.ForEach(x =>
             {
@@ -69,7 +69,7 @@ namespace OpenLawOffice.Data.Tasks
             return list;
         }
 
-        public static Common.Models.Tasks.TaskTag Create(Common.Models.Tasks.TaskTag model,
+        public static Common.Models.Events.EventTag Create(Common.Models.Events.EventTag model,
             Common.Models.Security.User creator)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
@@ -84,29 +84,29 @@ namespace OpenLawOffice.Data.Tasks
             }
 
             model.TagCategory = existingTagCat;
-            DBOs.Tasks.TaskTag dbo = Mapper.Map<DBOs.Tasks.TaskTag>(model);
+            DBOs.Events.EventTag dbo = Mapper.Map<DBOs.Events.EventTag>(model);
 
             using (IDbConnection conn = Database.Instance.GetConnection())
             {
-                conn.Execute("INSERT INTO \"task_tag\" (\"id\", \"task_id\", \"tag_category_id\", \"tag\", \"utc_created\", \"utc_modified\", \"created_by_user_id\", \"modified_by_user_id\") " +
-                    "VALUES (@Id, @TaskId, @TagCategoryId, @Tag, @UtcCreated, @UtcModified, @CreatedByUserId, @ModifiedByUserId)",
+                conn.Execute("INSERT INTO \"event_tag\" (\"id\", \"event_id\", \"tag_category_id\", \"tag\", \"utc_created\", \"utc_modified\", \"created_by_user_id\", \"modified_by_user_id\") " +
+                    "VALUES (@Id, @EventId, @TagCategoryId, @Tag, @UtcCreated, @UtcModified, @CreatedByUserId, @ModifiedByUserId)",
                     dbo);
             }
 
             return model;
         }
 
-        public static Common.Models.Tasks.TaskTag Edit(Common.Models.Tasks.TaskTag model,
+        public static Common.Models.Events.EventTag Edit(Common.Models.Events.EventTag model,
             Common.Models.Security.User modifier)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
-            DBOs.Tasks.TaskTag dbo = Mapper.Map<DBOs.Tasks.TaskTag>(model);
+            DBOs.Events.EventTag dbo = Mapper.Map<DBOs.Events.EventTag>(model);
 
             using (IDbConnection conn = Database.Instance.GetConnection())
             {
-                conn.Execute("UPDATE \"task_tag\" SET " +
-                    "\"task_id\"=@TaskId, \"tag\"=@Tag, \"utc_modified\"=@UtcModified, \"modified_by_user_id\"=@ModifiedByUserId " +
+                conn.Execute("UPDATE \"event_tag\" SET " +
+                    "\"event_id\"=@EventId, \"tag\"=@Tag, \"utc_modified\"=@UtcModified, \"modified_by_user_id\"=@ModifiedByUserId " +
                     "WHERE \"id\"=@Id", dbo);
             }
 
@@ -116,17 +116,17 @@ namespace OpenLawOffice.Data.Tasks
         }
 
         private static Common.Models.Tagging.TagCategory UpdateTagCategory(
-            Common.Models.Tasks.TaskTag model,
+            Common.Models.Events.EventTag model,
             Common.Models.Security.User modifier)
         {
-            Common.Models.Tasks.TaskTag currentTag = Get(model.Id.Value);
+            Common.Models.Events.EventTag currentTag = Get(model.Id.Value);
 
             if (currentTag.TagCategory != null)
             {
                 if (model.TagCategory != null && !string.IsNullOrEmpty(model.TagCategory.Name))
                 { // If current has tag & new has tag
                     // Are they the same - ignore if so
-                    if (currentTag.TagCategory.Name != model.TagCategory.Name)
+                    if (currentTag.Tag != model.Tag)
                     {
                         // Update - change tagcat
                         model.TagCategory = AddOrChangeTagCategory(model, modifier);
@@ -140,7 +140,7 @@ namespace OpenLawOffice.Data.Tasks
 
                     using (IDbConnection conn = Database.Instance.GetConnection())
                     {
-                        conn.Execute("UPDATE \"task_tag\" SET \"tag_category_id\"=null WHERE \"id\"=@Id",
+                        conn.Execute("UPDATE \"event_tag\" SET \"tag_category_id\"=null WHERE \"id\"=@Id",
                             new { Id = model.Id.Value });
                     }
                 }
@@ -160,7 +160,7 @@ namespace OpenLawOffice.Data.Tasks
         }
 
         private static Common.Models.Tagging.TagCategory AddOrChangeTagCategory(
-            Common.Models.Tasks.TaskTag tag,
+            Common.Models.Events.EventTag tag,
             Common.Models.Security.User modifier)
         {
             Common.Models.Tagging.TagCategory newTagCat = null;
@@ -192,26 +192,26 @@ namespace OpenLawOffice.Data.Tasks
             // Update MatterTag's TagCategoryId
             using (IDbConnection conn = Database.Instance.GetConnection())
             {
-                conn.Execute("UPDATE \"task_tag\" SET \"tag_category_id\"=@TagCategoryId WHERE \"id\"=@Id",
+                conn.Execute("UPDATE \"event_tag\" SET \"tag_category_id\"=@TagCategoryId WHERE \"id\"=@Id",
                     new { Id = tag.Id.Value, TagCategoryId = tag.TagCategory.Id });
             }
 
             return tag.TagCategory;
         }
 
-        public static Common.Models.Tasks.TaskTag Disable(Common.Models.Tasks.TaskTag model,
+        public static Common.Models.Events.EventTag Disable(Common.Models.Events.EventTag model,
             Common.Models.Security.User disabler)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
-            DataHelper.Disable<Common.Models.Matters.MatterContact,
-                DBOs.Matters.MatterContact>("task_tag", disabler.Id.Value, model.Id);
+            DataHelper.Disable<Common.Models.Events.EventTag,
+                DBOs.Events.EventTag>("event_tag", disabler.Id.Value, model.Id);
 
             return model;
         }
 
-        public static Common.Models.Tasks.TaskTag Enable(Common.Models.Tasks.TaskTag model,
+        public static Common.Models.Events.EventTag Enable(Common.Models.Events.EventTag model,
             Common.Models.Security.User enabler)
         {
             model.ModifiedBy = enabler;
@@ -219,45 +219,30 @@ namespace OpenLawOffice.Data.Tasks
             model.DisabledBy = null;
             model.Disabled = null;
 
-            DataHelper.Enable<Common.Models.Matters.MatterContact,
-                DBOs.Matters.MatterContact>("task_tag", enabler.Id.Value, model.Id);
+            DataHelper.Enable<Common.Models.Events.EventTag,
+                DBOs.Events.EventTag>("event_tag", enabler.Id.Value, model.Id);
 
             return model;
         }
 
-        public static List<Common.Models.Tasks.TaskTag> ListForTask(Guid taskId)
+        public static List<Common.Models.Events.EventTag> Search(string text)
         {
-            List<Common.Models.Tasks.TaskTag> list =
-                DataHelper.List<Common.Models.Tasks.TaskTag, DBOs.Tasks.TaskTag>(
-                "SELECT * FROM \"matter_tag\" WHERE \"task_id\"=@TaskId AND \"utc_disabled\" is null",
-                new { TaskId = taskId });
-
-            list.ForEach(x =>
-            {
-                x.TagCategory = Tagging.TagCategory.Get(x.TagCategory.Id);
-            });
-
-            return list;
-        }
-
-        public static List<Common.Models.Tasks.TaskTag> Search(string text)
-        {
-            List<Common.Models.Tasks.TaskTag> list = new List<Common.Models.Tasks.TaskTag>();
-            List<DBOs.Tasks.TaskTag> dbo = null;
+            List<Common.Models.Events.EventTag> list = new List<Common.Models.Events.EventTag>();
+            List<DBOs.Events.EventTag> dbo = null;
 
             using (IDbConnection conn = Database.Instance.GetConnection())
             {
-                dbo = conn.Query<DBOs.Tasks.TaskTag>(
-                    "SELECT * FROM \"task_tag\" WHERE LOWER(\"tag\") LIKE '%' || @Query || '%'",
+                dbo = conn.Query<DBOs.Events.EventTag>(
+                    "SELECT * FROM \"event_tag\" WHERE LOWER(\"tag\") LIKE '%' || @Query || '%'",
                     new { Query = text }).ToList();
             }
 
             dbo.ForEach(x =>
             {
-                Common.Models.Tasks.TaskTag tt = Mapper.Map<Common.Models.Tasks.TaskTag>(x);
-                tt.TagCategory = Tagging.TagCategory.Get(tt.TagCategory.Id);
-                tt.Task = Task.Get(tt.Task.Id.Value);
-                list.Add(tt);
+                Common.Models.Events.EventTag model = Mapper.Map<Common.Models.Events.EventTag>(x);
+                model.TagCategory = Tagging.TagCategory.Get(model.TagCategory.Id);
+                model.Event = Event.Get(model.Event.Id.Value);
+                list.Add(model);
             });
 
             return list;

@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="Document.cs" company="Nodine Legal, LLC">
+// <copyright file="Event.cs" company="Nodine Legal, LLC">
 // Licensed to Nodine Legal, LLC under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -19,7 +19,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace OpenLawOffice.Data.DBOs.Documents
+namespace OpenLawOffice.Data.DBOs.Events
 {
     using System;
     using AutoMapper;
@@ -28,7 +28,7 @@ namespace OpenLawOffice.Data.DBOs.Documents
     /// TODO: Update summary.
     /// </summary>
     [Common.Models.MapMe]
-    public class Document : Core
+    public class Event : Core
     {
         [ColumnMapping(Name = "id")]
         public Guid Id { get; set; }
@@ -36,10 +36,25 @@ namespace OpenLawOffice.Data.DBOs.Documents
         [ColumnMapping(Name = "title")]
         public string Title { get; set; }
 
+        [ColumnMapping(Name = "allday")]
+        public bool AllDay { get; set; }
+
+        [ColumnMapping(Name = "start")]
+        public DateTime Start { get; set; }
+
+        [ColumnMapping(Name = "end")]
+        public DateTime? End { get; set; }
+
+        [ColumnMapping(Name = "location")]
+        public string Location { get; set; }
+
+        [ColumnMapping(Name = "description")]
+        public string Description { get; set; }
+
         public void BuildMappings()
         {
-            Dapper.SqlMapper.SetTypeMap(typeof(Document), new ColumnAttributeTypeMapper<Document>());
-            Mapper.CreateMap<DBOs.Documents.Document, Common.Models.Documents.Document>()
+            Dapper.SqlMapper.SetTypeMap(typeof(Event), new ColumnAttributeTypeMapper<Event>());
+            Mapper.CreateMap<DBOs.Events.Event, Common.Models.Events.Event>()
                 .ForMember(dst => dst.IsStub, opt => opt.UseValue(false))
                 .ForMember(dst => dst.Created, opt => opt.ResolveUsing(db =>
                 {
@@ -79,9 +94,20 @@ namespace OpenLawOffice.Data.DBOs.Documents
                     };
                 }))
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title));
+                .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dst => dst.AllDay, opt => opt.MapFrom(src => src.AllDay))
+                .ForMember(dst => dst.Start, opt => opt.ResolveUsing(db =>
+                {
+                    return db.Start.ToSystemTime();
+                }))
+                .ForMember(dst => dst.End, opt => opt.ResolveUsing(db =>
+                {
+                    return db.End.ToSystemTime();
+                }))
+                .ForMember(dst => dst.Location, opt => opt.MapFrom(src => src.Location))
+                .ForMember(dst => dst.Description, opt => opt.MapFrom(src => src.Description));
 
-            Mapper.CreateMap<Common.Models.Documents.Document, DBOs.Documents.Document>()
+            Mapper.CreateMap<Common.Models.Events.Event, DBOs.Events.Event>()
                 .ForMember(dst => dst.UtcCreated, opt => opt.ResolveUsing(db =>
                 {
                     return db.Created.ToDbTime();
@@ -112,7 +138,18 @@ namespace OpenLawOffice.Data.DBOs.Documents
                     return model.DisabledBy.Id;
                 }))
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title));
+                .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dst => dst.AllDay, opt => opt.MapFrom(src => src.AllDay))
+                .ForMember(dst => dst.Start, opt => opt.ResolveUsing(db =>
+                {
+                    return db.Start.ToDbTime();
+                }))
+                .ForMember(dst => dst.End, opt => opt.ResolveUsing(db =>
+                {
+                    return db.End.ToDbTime();
+                }))
+                .ForMember(dst => dst.Location, opt => opt.MapFrom(src => src.Location))
+                .ForMember(dst => dst.Description, opt => opt.MapFrom(src => src.Description));
         }
     }
 }
