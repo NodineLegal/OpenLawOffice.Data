@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="Setup.cs" company="Nodine Legal, LLC">
+// <copyright file="Users.cs" company="Nodine Legal, LLC">
 // Licensed to Nodine Legal, LLC under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -19,39 +19,38 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace OpenLawOffice.Data.Installation
+namespace OpenLawOffice.Data.Account
 {
     using System;
-    using System.Configuration;
-    using System.IO;
-    using Npgsql;
+    using System.Collections.Generic;
+    using System.Data;
+    using System.Linq;
+    using AutoMapper;
+    using Dapper;
 
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    public static class Setup
+    public static class Users
     {
-        public static void CreateDb(string filepath, bool setupData = false)
+        public static Common.Models.Account.Users Get(Guid pid)
         {
-            FileInfo fi = new FileInfo(filepath);
-            string dirName = fi.DirectoryName;
-
-            if (!dirName.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
-                dirName += System.IO.Path.DirectorySeparatorChar;
-
-            ExecuteScript(filepath);
+            return DataHelper.Get<Common.Models.Account.Users, DBOs.Account.Users>(
+                "SELECT * FROM \"Users\" WHERE \"pId\"=@PId",
+                new { PId = pid });
         }
 
-        private static void ExecuteScript(string filepath)
+        public static Common.Models.Account.Users Get(string username)
         {
-            NpgsqlConnection conn = new NpgsqlConnection(ConfigurationManager.ConnectionStrings["Postgres"].ToString());
-            FileInfo file = new FileInfo(filepath);
-            string script = file.OpenText().ReadToEnd();
-            NpgsqlCommand cmd = new NpgsqlCommand(script, conn);
-            conn.Open();
-            cmd.ExecuteNonQuery();
-            conn.Close();
-            conn.Dispose();
+            return DataHelper.Get<Common.Models.Account.Users, DBOs.Account.Users>(
+                "SELECT * FROM \"Users\" WHERE \"Username\"=@Username",
+                new { Username = username });
+        }
+
+        public static List<Common.Models.Account.Users> List()
+        {
+            return DataHelper.List<Common.Models.Account.Users, DBOs.Account.Users>(
+                "SELECT * FROM \"Users\"");
         }
     }
 }

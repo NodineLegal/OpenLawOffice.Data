@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="Core.cs" company="Nodine Legal, LLC">
+// <copyright file="UserRole.cs" company="Nodine Legal, LLC">
 // Licensed to Nodine Legal, LLC under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -19,19 +19,25 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace OpenLawOffice.Data.DBOs
+namespace OpenLawOffice.Data.Account
 {
     using System;
+    using System.Collections.Generic;
+    using System.Data;
+    using System.Linq;
+    using AutoMapper;
+    using Dapper;
 
-    public abstract class Core : DboWithDatesOnly
+    /// <summary>
+    /// TODO: Update summary.
+    /// </summary>
+    public class UserRole
     {
-        [ColumnMapping(Name = "created_by_user_pid")]
-        public Guid CreatedByUserPId { get; set; }
-
-        [ColumnMapping(Name = "modified_by_user_pid")]
-        public Guid ModifiedByUserPId { get; set; }
-
-        [ColumnMapping(Name = "disabled_by_user_pid")]
-        public Guid? DisabledByUserPId { get; set; }
+        public static List<Common.Models.Account.UserRole> ListForUser(string username)
+        {
+            return DataHelper.List<Common.Models.Account.UserRole, DBOs.Account.UserRole>(
+                "SELECT * FROM \"Roles\" FULL OUTER JOIN \"UsersInRoles\" ON \"Roles\".\"Rolename\"=\"UsersInRoles\".\"Rolename\"",
+                new { Username = username });
+        }
     }
 }
