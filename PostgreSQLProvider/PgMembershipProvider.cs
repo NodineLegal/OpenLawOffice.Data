@@ -306,6 +306,12 @@ namespace OpenLawOffice.Data.PostgreSQLProvider
                 return false;
         }
 
+        public object DbNullOrValue(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return DBNull.Value;
+            else return value;
+        }
+
         /// <summary>
         /// MembershipProvider.CreateUser
         /// </summary>
@@ -355,14 +361,16 @@ namespace OpenLawOffice.Data.PostgreSQLProvider
                 {
                     using (NpgsqlCommand dbCommand = dbConn.CreateCommand())
                     {
-                        dbCommand.CommandText = string.Format(CultureInfo.InvariantCulture, "INSERT INTO \"{0}\" (\"pId\", \"Username\", \"Password\", \"Email\", \"PasswordQuestion\", \"PasswordAnswer\", \"IsApproved\", \"CreationDate\", \"LastPasswordChangedDate\", \"LastActivityDate\", \"ApplicationName\", \"IsLockedOut\", \"LastLockedOutDate\", \"FailedPasswordAttemptCount\", \"FailedPasswordAttemptWindowStart\", \"FailedPasswordAnswerAttemptCount\", \"FailedPasswordAnswerAttemptWindowStart\") Values (@pId, @Username, @Password, @Email, @PasswordQuestion, @PasswordAnswer, @IsApproved, @CreationDate, @LastPasswordChangedDate, @LastActivityDate, @ApplicationName, @IsLockedOut, @LastLockedOutDate, @FailedPasswordAttemptCount, @FailedPasswordAttemptWindowStart, @FailedPasswordAnswerAttemptCount, @FailedPasswordAnswerAttemptWindowStart)", s_tableName);
+                        dbCommand.CommandText = string.Format(CultureInfo.InvariantCulture, 
+                            "INSERT INTO \"{0}\" (\"pId\", \"Username\", \"Password\", \"Email\", \"PasswordQuestion\", \"PasswordAnswer\", \"IsApproved\", \"CreationDate\", \"LastPasswordChangedDate\", \"LastActivityDate\", \"ApplicationName\", \"IsLockedOut\", \"LastLockedOutDate\", \"FailedPasswordAttemptCount\", \"FailedPasswordAttemptWindowStart\", \"FailedPasswordAnswerAttemptCount\", \"FailedPasswordAnswerAttemptWindowStart\") Values " +
+                            "(@pId, @Username, @Password, @Email, @PasswordQuestion, @PasswordAnswer, @IsApproved, @CreationDate, @LastPasswordChangedDate, @LastActivityDate, @ApplicationName, @IsLockedOut, @LastLockedOutDate, @FailedPasswordAttemptCount, @FailedPasswordAttemptWindowStart, @FailedPasswordAnswerAttemptCount, @FailedPasswordAnswerAttemptWindowStart)", s_tableName);
 
                         dbCommand.Parameters.Add("@pId", NpgsqlDbType.Uuid).Value = providerUserKey;
                         dbCommand.Parameters.Add("@Username", NpgsqlDbType.Varchar, 255).Value = username;
                         dbCommand.Parameters.Add("@Password", NpgsqlDbType.Varchar, 255).Value = EncodePassword(password);
                         dbCommand.Parameters.Add("@Email", NpgsqlDbType.Varchar, 128).Value = email;
-                        dbCommand.Parameters.Add("@PasswordQuestion", NpgsqlDbType.Varchar, 255).Value = passwordQuestion;
-                        dbCommand.Parameters.Add("@PasswordAnswer", NpgsqlDbType.Varchar, 255).Value = EncodePassword(passwordAnswer);
+                        dbCommand.Parameters.Add("@PasswordQuestion", NpgsqlDbType.Varchar, 255).Value = DbNullOrValue(passwordQuestion);
+                        dbCommand.Parameters.Add("@PasswordAnswer", NpgsqlDbType.Varchar, 255).Value = DbNullOrValue(EncodePassword(passwordAnswer));
                         dbCommand.Parameters.Add("@IsApproved", NpgsqlDbType.Boolean).Value = isApproved;
                         dbCommand.Parameters.Add("@CreationDate", NpgsqlDbType.TimestampTZ).Value = createDate;
                         dbCommand.Parameters.Add("@LastPasswordChangedDate", NpgsqlDbType.TimestampTZ).Value = createDate;
