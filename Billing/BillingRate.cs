@@ -28,55 +28,96 @@ namespace OpenLawOffice.Data.Billing
     using AutoMapper;
     using Dapper;
 
-    public class BillingRate
+    public static class BillingRate
     {
-        public static Common.Models.Billing.BillingRate Get(int id)
+        public static Common.Models.Billing.BillingRate Get(
+            int id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Billing.BillingRate, DBOs.Billing.BillingRate>(
                 "SELECT * FROM \"billing_rate\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Billing.BillingRate> List()
+        public static Common.Models.Billing.BillingRate Get(
+            Transaction t,
+            int id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static List<Common.Models.Billing.BillingRate> List(
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Billing.BillingRate, DBOs.Billing.BillingRate>(
-                "SELECT * FROM \"billing_rate\" WHERE \"utc_disabled\" is null");
+                "SELECT * FROM \"billing_rate\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
         }
 
-        public static Common.Models.Billing.BillingRate Create(Common.Models.Billing.BillingRate model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Billing.BillingRate> List(
+            Transaction t)
+        {
+            return List(t.Connection, false);
+        }
+
+        public static Common.Models.Billing.BillingRate Create(
+            Common.Models.Billing.BillingRate model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
             DBOs.Billing.BillingRate dbo = Mapper.Map<DBOs.Billing.BillingRate>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"billing_rate\" (\"title\", \"price_per_unit\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Title, @PricePerUnit, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+            conn = DataHelper.OpenIfNeeded(conn);
 
+            if (conn.Execute("INSERT INTO \"billing_rate\" (\"title\", \"price_per_unit\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Title, @PricePerUnit, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
                 model.Id = conn.Query<DBOs.Billing.BillingRate>("SELECT currval(pg_get_serial_sequence('billing_rate', 'id')) AS \"id\"").Single().Id;
-            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Billing.BillingRate Edit(Common.Models.Billing.BillingRate model,
-            Common.Models.Account.Users modifier)
+        public static Common.Models.Billing.BillingRate Create(
+            Transaction t,
+            Common.Models.Billing.BillingRate model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Billing.BillingRate Edit(
+            Common.Models.Billing.BillingRate model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Billing.BillingRate dbo = Mapper.Map<DBOs.Billing.BillingRate>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"billing_rate\" SET " +
-                    "\"title\"=@Title, \"price_per_unit\"=@PricePerUnit, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"billing_rate\" SET " +
+                "\"title\"=@Title, \"price_per_unit\"=@PricePerUnit, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Billing.BillingRate Edit(
+            Transaction t,
+            Common.Models.Billing.BillingRate model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
         }
     }
 }

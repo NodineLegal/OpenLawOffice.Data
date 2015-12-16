@@ -22,17 +22,19 @@
 namespace OpenLawOffice.Data.Documents
 {
     using System;
+    using System.Data;
 
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
     public static class Version
     {
-        public static Common.Models.Documents.Version Get(Guid id)
+        public static Common.Models.Documents.Version Get(Guid id,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Documents.Version, DBOs.Documents.Version>(
                 "SELECT * FROM \"version\" WHERE \"id\"=@Id AND \"utc_disabled\" is null",
-                new { Id = id });
+                new { Id = id }, conn, closeConnection);
         }
     }
 }

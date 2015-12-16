@@ -178,6 +178,7 @@
     <Compile Include="Tasks\TaskTemplate.cs" />
     <Compile Include="Tasks\TaskTime.cs" />
     <Compile Include="Timing\Time.cs" />
+    <Compile Include="Transaction.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include=".gitignore" />

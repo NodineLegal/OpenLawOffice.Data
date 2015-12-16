@@ -26,79 +26,147 @@ namespace OpenLawOffice.Data.Notes
     using AutoMapper;
     using Dapper;
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
     public static class NoteMatter
     {
-        public static Common.Models.Notes.NoteMatter Get(Guid id)
+        public static Common.Models.Notes.NoteMatter Get(
+            Guid id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Notes.NoteMatter, DBOs.Notes.NoteMatter>(
                 "SELECT * FROM \"note_matter\" WHERE \"id\"=@Id AND \"utc_disabled\" is null",
-                new { Id = id });
+                new { Id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Notes.NoteMatter Get(Guid matterId, Guid noteId)
+        public static Common.Models.Notes.NoteMatter Get(
+            Transaction t,
+            Guid id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static Common.Models.Notes.NoteMatter Get(
+            Guid matterId, 
+            Guid noteId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Notes.NoteMatter, DBOs.Notes.NoteMatter>(
                 "SELECT * FROM \"note_matter\" WHERE \"matter_id\"=@MatterId AND \"note_id\"=@NoteId AND \"utc_disabled\" is null",
-                new { MatterId = matterId, NoteId = noteId });
+                new { MatterId = matterId, NoteId = noteId }, conn, closeConnection);
         }
 
-        public static Common.Models.Notes.NoteMatter GetIgnoringDisable(Guid matterId, Guid noteId)
+        public static Common.Models.Notes.NoteMatter Get(
+            Transaction t,
+            Guid matterId,
+            Guid noteId)
+        {
+            return Get(matterId, noteId, t.Connection, false);
+        }
+
+        public static Common.Models.Notes.NoteMatter GetIgnoringDisable(
+            Guid matterId, 
+            Guid noteId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Notes.NoteMatter, DBOs.Notes.NoteMatter>(
                 "SELECT * FROM \"note_matter\" WHERE \"matter_id\"=@MatterId AND \"note_id\"=@NoteId",
-                new { MatterId = matterId, NoteId = noteId });
+                new { MatterId = matterId, NoteId = noteId }, conn, closeConnection);
         }
 
-        public static Common.Models.Matters.Matter GetRelatedMatter(Guid noteId)
+        public static Common.Models.Notes.NoteMatter GetIgnoringDisable(
+            Transaction t,
+            Guid matterId,
+            Guid noteId)
+        {
+            return GetIgnoringDisable(matterId, noteId, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.Matter GetRelatedMatter(
+            Guid noteId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
                 "SELECT \"matter\".* FROM \"note_matter\" JOIN \"matter\" ON \"note_matter\".\"matter_id\"=\"matter\".\"id\" " +
                 "WHERE \"note_matter\".\"note_id\"=@NoteId " +
                 "AND \"note_matter\".\"utc_disabled\" is null " +
                 "AND \"matter\".\"utc_disabled\" is null ",
-                new { NoteId = noteId });
+                new { NoteId = noteId }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Notes.Note> ListForMatter(Guid matterId)
+        public static Common.Models.Matters.Matter GetRelatedMatter(
+            Transaction t,
+            Guid noteId)
+        {
+            return GetRelatedMatter(noteId, t.Connection, false);
+        }
+
+        public static List<Common.Models.Notes.Note> ListForMatter(
+            Guid matterId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Notes.Note, DBOs.Notes.Note>(
                 "SELECT * FROM \"note\" WHERE \"id\" IN (SELECT \"note_id\" FROM \"note_matter\" WHERE \"matter_id\"=@MatterId) AND " +
                 "\"utc_disabled\" is null ORDER BY \"timestamp\" DESC",
-                new { MatterId = matterId });
+                new { MatterId = matterId }, conn, closeConnection);
         }
 
-        public static Common.Models.Notes.NoteMatter Create(Common.Models.Notes.NoteMatter model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Notes.Note> ListForMatter(
+            Transaction t,
+            Guid matterId)
+        {
+            return ListForMatter(matterId, t.Connection, false);
+        }
+
+        public static Common.Models.Notes.NoteMatter Create(
+            Common.Models.Notes.NoteMatter model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.Created = model.Modified = DateTime.UtcNow;
             model.CreatedBy = model.ModifiedBy = creator;
             DBOs.Notes.NoteMatter dbo = Mapper.Map<DBOs.Notes.NoteMatter>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                Common.Models.Notes.NoteMatter currentModel = Get(model.Matter.Id.Value, model.Note.Id.Value);
+            conn = DataHelper.OpenIfNeeded(conn);
 
-                if (currentModel != null)
-                { // Update
-                    conn.Execute("UPDATE \"note_matter\" SET \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                        "\"utc_disabled\"=null, \"disabled_by_user_pid\"=null WHERE \"id\"=@Id", dbo);
-                    model.Created = currentModel.Created;
-                    model.CreatedBy = currentModel.CreatedBy;
-                }
-                else
-                { // Create
-                    conn.Execute("INSERT INTO \"note_matter\" (\"id\", \"note_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                        "VALUES (@Id, @NoteId, @MatterId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                        dbo);
-                }
+            Common.Models.Notes.NoteMatter currentModel = Get(model.Matter.Id.Value, model.Note.Id.Value, conn, false);
+
+            if (currentModel != null)
+            { // Update
+                conn.Execute("UPDATE \"note_matter\" SET \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                    "\"utc_disabled\"=null, \"disabled_by_user_pid\"=null WHERE \"id\"=@Id", dbo);
+                model.Created = currentModel.Created;
+                model.CreatedBy = currentModel.CreatedBy;
+            }
+            else
+            { // Create
+                if (conn.Execute("INSERT INTO \"note_matter\" (\"id\", \"note_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                    "VALUES (@Id, @NoteId, @MatterId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                    dbo) > 0)
+                    model.Id = conn.Query<DBOs.Notes.NoteMatter>("SELECT currval(pg_get_serial_sequence('note_matter', 'id')) AS \"id\"").Single().Id;
             }
 
+            DataHelper.Close(conn, closeConnection);
+
             return model;
+        }
+
+        public static Common.Models.Notes.NoteMatter Create(
+            Transaction t,
+            Common.Models.Notes.NoteMatter model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
         }
     }
 }

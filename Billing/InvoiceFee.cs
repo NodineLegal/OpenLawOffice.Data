@@ -24,72 +24,82 @@ namespace OpenLawOffice.Data.Billing
     using System;
     using System.Collections.Generic;
     using System.Data;
+    using System.Linq;
     using AutoMapper;
     using Dapper;
 
-    public class InvoiceFee : Base
+    public static class InvoiceFee
     {
-        public static List<Common.Models.Billing.InvoiceFee> ListForMatter(Guid matterId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static List<Common.Models.Billing.InvoiceFee> ListForMatter(
+            Guid matterId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
-            List<Common.Models.Billing.InvoiceFee> list;
-
-            conn = OpenIfNeeded(conn);
-
-            list = DataHelper.List<Common.Models.Billing.InvoiceFee, DBOs.Billing.InvoiceFee>(
+            return DataHelper.List<Common.Models.Billing.InvoiceFee, DBOs.Billing.InvoiceFee>(
                 "SELECT * FROM \"invoice_fee\" WHERE \"fee_id\" IN (SELECT \"fee_id\" FROM \"fee_matter\" WHERE \"matter_id\"=@MatterId) AND " +
                 "\"utc_disabled\" is null ORDER BY \"utc_created\" ASC",
-                new { MatterId = matterId });
-
-            Close(conn, closeConnection);
-
-            return list;
+                new { MatterId = matterId }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Billing.InvoiceFee> ListForMatterAndInvoice(Guid invoiceId, Guid matterId, 
-            IDbConnection conn = null, bool closeConnection = true)
+        public static List<Common.Models.Billing.InvoiceFee> ListForMatter(
+            Transaction t,
+            Guid matterId)
         {
-            List<Common.Models.Billing.InvoiceFee> list;
+            return ListForMatter(matterId, t.Connection, false);
+        }
 
-            conn = OpenIfNeeded(conn);
-
-            list = DataHelper.List<Common.Models.Billing.InvoiceFee, DBOs.Billing.InvoiceFee>(
+        public static List<Common.Models.Billing.InvoiceFee> ListForMatterAndInvoice(
+            Guid invoiceId, 
+            Guid matterId, 
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            return DataHelper.List<Common.Models.Billing.InvoiceFee, DBOs.Billing.InvoiceFee>(
                 "SELECT * FROM \"invoice_fee\" WHERE \"fee_id\" IN (SELECT \"fee_id\" FROM \"fee_matter\" WHERE \"matter_id\"=@MatterId) AND " +
                 "\"invoice_id\"=@InvoiceId AND " +
                 "\"utc_disabled\" is null ORDER BY \"utc_created\" ASC",
-                new { InvoiceId = invoiceId, MatterId = matterId });
-
-            Close(conn, closeConnection);
-
-            return list;
+                new { InvoiceId = invoiceId, MatterId = matterId }, conn, closeConnection);
         }
 
-        public static Common.Models.Billing.InvoiceFee Get(Guid invoiceId, Guid feeId, 
-            IDbConnection conn = null, bool closeConnection = true)
+        public static List<Common.Models.Billing.InvoiceFee> ListForMatterAndInvoice(
+            Transaction t,
+            Guid invoiceId,
+            Guid matterId)
         {
-            Common.Models.Billing.InvoiceFee item;
-
-            conn = OpenIfNeeded(conn);
-
-            item = DataHelper.Get<Common.Models.Billing.InvoiceFee, DBOs.Billing.InvoiceFee>(
-                "SELECT * FROM \"invoice_fee\" WHERE \"invoice_id\"=@InvoiceId AND \"fee_id\"=@FeeId",
-                new { InvoiceId = invoiceId, FeeId = feeId });
-
-            Close(conn, closeConnection);
-
-            return item;
+            return ListForMatterAndInvoice(invoiceId, matterId, t.Connection, false);
         }
 
-        public static Common.Models.Billing.InvoiceFee Create(Common.Models.Billing.InvoiceFee model,
+        public static Common.Models.Billing.InvoiceFee Get(
+            Guid invoiceId, 
+            Guid feeId, 
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            return DataHelper.Get<Common.Models.Billing.InvoiceFee, DBOs.Billing.InvoiceFee>(
+                "SELECT * FROM \"invoice_fee\" WHERE \"invoice_id\"=@InvoiceId AND \"fee_id\"=@FeeId",
+                new { InvoiceId = invoiceId, FeeId = feeId }, conn, closeConnection);
+        }
+
+        public static Common.Models.Billing.InvoiceFee Get(
+            Transaction t,
+            Guid invoiceId,
+            Guid feeId)
+        {
+            return Get(invoiceId, feeId, t.Connection, false);
+        }
+
+        public static Common.Models.Billing.InvoiceFee Create(
+            Common.Models.Billing.InvoiceFee model,
             Common.Models.Account.Users creator,
-            IDbConnection conn = null, bool closeConnection = true)
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.Created = model.Modified = DateTime.UtcNow;
             model.CreatedBy = model.ModifiedBy = creator;
             DBOs.Billing.InvoiceFee dbo = Mapper.Map<DBOs.Billing.InvoiceFee>(model);
 
-            conn = OpenIfNeeded(conn);
+            conn = DataHelper.OpenIfNeeded(conn);
 
             Common.Models.Billing.InvoiceFee currentModel = Get(model.Invoice.Id.Value, model.Fee.Id.Value);
 
@@ -102,14 +112,23 @@ namespace OpenLawOffice.Data.Billing
             }
             else
             { // Create
-                conn.Execute("INSERT INTO \"invoice_fee\" (\"id\", \"fee_id\", \"invoice_id\", \"amount\", \"details\", \"tax_amount\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                if (conn.Execute("INSERT INTO \"invoice_fee\" (\"id\", \"fee_id\", \"invoice_id\", \"amount\", \"details\", \"tax_amount\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                     "VALUES (@Id, @FeeId, @InvoiceId, @Amount, @Details, @TaxAmount, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+                    dbo) > 0)
+                    model.Id = conn.Query<DBOs.Billing.InvoiceFee>("SELECT currval(pg_get_serial_sequence('invoice_fee', 'id')) AS \"id\"").Single().Id;
             }
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Billing.InvoiceFee Create(
+            Transaction t,
+            Common.Models.Billing.InvoiceFee model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
         }
     }
 }

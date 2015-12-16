@@ -33,34 +33,52 @@ namespace OpenLawOffice.Data
     /// </summary>
     internal static class DataHelper
     {
-        internal static TReturn Get<TReturn, TDbo>(string sql, object anon = null)
+        internal static TReturn Get<TReturn, TDbo>(string sql, object anon = null,
+            IDbConnection conn = null, bool closeConnection = true)
             where TReturn : class
             where TDbo : class
         {
             TDbo dbo = null;
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                dbo = conn.Query<TDbo>(sql, anon).SingleOrDefault();
-            }
+            conn = OpenIfNeeded(conn);
+
+            dbo = conn.Query<TDbo>(sql, anon).SingleOrDefault();
+
+            Close(conn, closeConnection);
 
             if (dbo == null) return null;
 
             return Mapper.Map<TReturn>(dbo);
         }
 
-        internal static List<TReturn> List<TReturn, TDbo>(string sql, object anon = null)
+        internal static TReturn Get<TReturn, TDbo>(string sql, object anon,
+            Transaction t)
+            where TReturn : class
+            where TDbo : class
+        {
+            TDbo dbo = null;
+
+            dbo = t.Connection.Query<TDbo>(sql, anon).SingleOrDefault();
+            
+            if (dbo == null) return null;
+
+            return Mapper.Map<TReturn>(dbo);
+        }
+
+        internal static List<TReturn> List<TReturn, TDbo>(string sql, object anon = null,
+            IDbConnection conn = null, bool closeConnection = true)
             where TReturn : class
             where TDbo : class
         {
             List<TReturn> ret = new List<TReturn>();
             List<TDbo> dbo = null;
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                IEnumerable<TDbo> asd = conn.Query<TDbo>(sql, anon);
-                dbo = asd.ToList<TDbo>();
-            }
+            conn = OpenIfNeeded(conn);
+
+            IEnumerable<TDbo> asd = conn.Query<TDbo>(sql, anon);
+            dbo = asd.ToList<TDbo>();
+
+            Close(conn, closeConnection);
 
             if (dbo == null) return null;
 
@@ -72,61 +90,156 @@ namespace OpenLawOffice.Data
             return ret;
         }
 
-        internal static void Disable<TReturn, TDbo>(string tableName, Guid userPId, object id)
+        internal static List<TReturn> List<TReturn, TDbo>(string sql, object anon,
+            Transaction t)
+            where TReturn : class
+            where TDbo : class
+        {
+            List<TReturn> ret = new List<TReturn>();
+            List<TDbo> dbo = null;
+
+            IEnumerable<TDbo> asd = t.Connection.Query<TDbo>(sql, anon);
+            dbo = asd.ToList<TDbo>();
+
+            if (dbo == null) return null;
+
+            dbo.ForEach(x =>
+            {
+                ret.Add(Mapper.Map<TReturn>(x));
+            });
+
+            return ret;
+        }
+
+        internal static void Disable<TReturn, TDbo>(string tableName, Guid userPId, object id,
+            IDbConnection conn = null, bool closeConnection = true)
             where TReturn : class
             where TDbo : class
         {
             DateTime Now = DateTime.UtcNow;
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
+            conn = OpenIfNeeded(conn);
+
+            if (id.GetType() == typeof(Guid))
             {
-                if (id.GetType() == typeof(Guid))
-                {
-                    conn.Execute("UPDATE \"" + tableName + "\" SET " +
-                        "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
-                        "WHERE \"id\"=@Id",
-                        new { Now = Now, UserPId = userPId, Id = (Guid)id });
-                }
-                else if (id.GetType() == typeof(int))
-                {
-                    conn.Execute("UPDATE \"" + tableName + "\" SET " +
-                        "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
-                        "WHERE \"id\"=@Id",
-                        new { Now = Now, UserPId = userPId, Id = (int)id });
-                }
-                else
-                {
-                    conn.Execute("UPDATE \"" + tableName + "\" SET " +
-                        "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
-                        "WHERE \"id\"=@Id",
-                        new { Now = Now, UserPId = userPId, Id = id });
-                }
+                conn.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = (Guid)id });
+            }
+            else if (id.GetType() == typeof(int))
+            {
+                conn.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = (int)id });
+            }
+            else
+            {
+                conn.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = id });
+            }
+
+            Close(conn, closeConnection);
+        }
+
+        internal static void Disable<TReturn, TDbo>(string tableName, Guid userPId, object id,
+            Transaction t)
+            where TReturn : class
+            where TDbo : class
+        {
+            DateTime Now = DateTime.UtcNow;
+
+            if (id.GetType() == typeof(Guid))
+            {
+                t.Connection.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = (Guid)id });
+            }
+            else if (id.GetType() == typeof(int))
+            {
+                t.Connection.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = (int)id });
+            }
+            else
+            {
+                t.Connection.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_disabled\"=@Now, \"disabled_by_user_pid\"=@UserPId " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = id });
             }
         }
 
-        internal static void Enable<TReturn, TDbo>(string tableName, Guid userPId, object id)
+        internal static void Enable<TReturn, TDbo>(string tableName, Guid userPId, object id,
+            IDbConnection conn = null, bool closeConnection = true)
             where TReturn : class
             where TDbo : class
         {
             DateTime Now = DateTime.UtcNow;
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
+            conn = OpenIfNeeded(conn);
+
+            if (id.GetType() == typeof(Guid))
             {
-                if (id.GetType() == typeof(Guid))
-                {
-                    conn.Execute("UPDATE \"" + tableName + "\" SET " +
-                        "\"utc_modified\"=@Now, \"modified_by_user_pid\"=@UserPId, \"utc_disabled\"=null, \"disabled_by_user_pid\"=null " +
-                        "WHERE \"id\"=@Id",
-                        new { Now = Now, UserPId = userPId, Id = (Guid)id });
-                }
-                else
-                {
-                    conn.Execute("UPDATE \"" + tableName + "\" SET " +
-                        "\"utc_modified\"=@Now, \"modified_by_user_pid\"=@UserPId, \"utc_disabled\"=null, \"disabled_by_user_pid\"=null " +
-                        "WHERE \"id\"=@Id",
-                        new { Now = Now, UserPId = userPId, Id = id });
-                }
+                conn.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_modified\"=@Now, \"modified_by_user_pid\"=@UserPId, \"utc_disabled\"=null, \"disabled_by_user_pid\"=null " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = (Guid)id });
             }
+            else
+            {
+                conn.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_modified\"=@Now, \"modified_by_user_pid\"=@UserPId, \"utc_disabled\"=null, \"disabled_by_user_pid\"=null " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = id });
+            }
+
+            Close(conn, closeConnection);
+        }
+
+        internal static void Enable<TReturn, TDbo>(string tableName, Guid userPId, object id,
+            Transaction t)
+            where TReturn : class
+            where TDbo : class
+        {
+            DateTime Now = DateTime.UtcNow;
+
+            if (id.GetType() == typeof(Guid))
+            {
+                t.Connection.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_modified\"=@Now, \"modified_by_user_pid\"=@UserPId, \"utc_disabled\"=null, \"disabled_by_user_pid\"=null " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = (Guid)id });
+            }
+            else
+            {
+                t.Connection.Execute("UPDATE \"" + tableName + "\" SET " +
+                    "\"utc_modified\"=@Now, \"modified_by_user_pid\"=@UserPId, \"utc_disabled\"=null, \"disabled_by_user_pid\"=null " +
+                    "WHERE \"id\"=@Id",
+                    new { Now = Now, UserPId = userPId, Id = id });
+            }
+        }
+
+        internal static IDbConnection OpenIfNeeded(IDbConnection conn = null)
+        {
+            if (conn == null)
+            {
+                conn = Database.Instance.GetConnection();
+                conn.Open();
+            }
+
+            return conn;
+        }
+
+        internal static void Close(IDbConnection conn = null, bool closeConnection = false)
+        {
+            if (closeConnection && conn != null)
+                conn.Close();
         }
     }
 }

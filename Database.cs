@@ -51,5 +51,10 @@ namespace OpenLawOffice.Data
             if (val == System.DBNull.Value) return default(T);
             return (T)reader[columnName];
         }
+
+        public static void CloseConnection(IDbConnection conn)
+        {
+            DataHelper.Close(conn);
+        }
     }
 }

@@ -28,114 +28,138 @@ namespace OpenLawOffice.Data.Billing
     using AutoMapper;
     using Dapper;
 
-    public class BillingGroup : Base
+    public static class BillingGroup
     {
-        public static Common.Models.Billing.BillingGroup Get(int id,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static Common.Models.Billing.BillingGroup Get(
+            int id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
-            Common.Models.Billing.BillingGroup item;
-
-            conn = OpenIfNeeded(conn);
-
-            item = DataHelper.Get<Common.Models.Billing.BillingGroup, DBOs.Billing.BillingGroup>(
+            return DataHelper.Get<Common.Models.Billing.BillingGroup, DBOs.Billing.BillingGroup>(
                 "SELECT * FROM \"billing_group\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
-
-            Close(conn, closeConnection);
-
-            return item;
+                new { id = id }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Billing.BillingGroup> List(IDbConnection conn = null, bool closeConnection = true)
+        public static Common.Models.Billing.BillingGroup Get(
+            Transaction t,
+            int id)
         {
-            List<Common.Models.Billing.BillingGroup> list;
-
-            conn = OpenIfNeeded(conn);
-
-            list = DataHelper.List<Common.Models.Billing.BillingGroup, DBOs.Billing.BillingGroup>(
-                "SELECT * FROM \"billing_group\" WHERE \"utc_disabled\" is null");
-
-            Close(conn, closeConnection);
-
-            return list;
+            return Get(id, t.Connection, false);
         }
 
-        public static List<Common.Models.Billing.Invoice> ListInvoicesForGroup(int billingGroupId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static List<Common.Models.Billing.BillingGroup> List(
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
-            List<Common.Models.Billing.Invoice> list;
+            return DataHelper.List<Common.Models.Billing.BillingGroup, DBOs.Billing.BillingGroup>(
+                "SELECT * FROM \"billing_group\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
+        }
 
-            conn = OpenIfNeeded(conn);
+        public static List<Common.Models.Billing.BillingGroup> List(
+            Transaction t)
+        {
+            return List(t.Connection, false);
+        }
 
-            list = DataHelper.List<Common.Models.Billing.Invoice, DBOs.Billing.Invoice>(
+        public static List<Common.Models.Billing.Invoice> ListInvoicesForGroup(
+            int billingGroupId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            return DataHelper.List<Common.Models.Billing.Invoice, DBOs.Billing.Invoice>(
                 "SELECT * FROM \"invoice\" WHERE \"billing_group_id\"=@BillingGroupId AND \"utc_disabled\" is null",
-                new { BillingGroupId = billingGroupId });
-
-            Close(conn, closeConnection);
-
-            return list;
+                new { BillingGroupId = billingGroupId }, conn, closeConnection);
         }
 
-        public static Common.Models.Billing.BillingGroup Create(Common.Models.Billing.BillingGroup model,
+        public static List<Common.Models.Billing.Invoice> ListInvoicesForGroup(
+            Transaction t,
+            int billingGroupId)
+        {
+            return ListInvoicesForGroup(billingGroupId, t.Connection, false);
+        }
+
+        public static Common.Models.Billing.BillingGroup Create(
+            Common.Models.Billing.BillingGroup model,
             Common.Models.Account.Users creator,
-            IDbConnection conn = null, bool closeConnection = true)
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
             DBOs.Billing.BillingGroup dbo = Mapper.Map<DBOs.Billing.BillingGroup>(model);
 
-            conn = OpenIfNeeded(conn);
+            conn = DataHelper.OpenIfNeeded(conn);
 
-            conn.Execute("INSERT INTO \"billing_group\" (\"title\", \"last_run\", \"next_run\", \"amount\", \"bill_to_contact_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+            if (conn.Execute("INSERT INTO \"billing_group\" (\"title\", \"last_run\", \"next_run\", \"amount\", \"bill_to_contact_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Title, @LastRun, @NextRun, @Amount, @BillToContactId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo);
+                dbo) > 0)
+                model.Id = conn.Query<DBOs.Billing.BillingGroup>("SELECT currval(pg_get_serial_sequence('billing_group', 'id')) AS \"id\"").Single().Id;
 
-            model.Id = conn.Query<DBOs.Billing.BillingGroup>("SELECT currval(pg_get_serial_sequence('billing_group', 'id')) AS \"id\"").Single().Id;
-
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Billing.BillingGroup Edit(Common.Models.Billing.BillingGroup model,
+        public static Common.Models.Billing.BillingGroup Create(
+            Transaction t,
+            Common.Models.Billing.BillingGroup model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Billing.BillingGroup Edit(
+            Common.Models.Billing.BillingGroup model,
             Common.Models.Account.Users modifier,
-            IDbConnection conn = null, bool closeConnection = true)
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Billing.BillingGroup dbo = Mapper.Map<DBOs.Billing.BillingGroup>(model);
 
-            conn = OpenIfNeeded(conn);
+            conn = DataHelper.OpenIfNeeded(conn);
 
             conn.Execute("UPDATE \"billing_group\" SET " +
                 "\"title\"=@Title, \"last_run\"=@LastRun, \"next_run\"=@NextRun, \"amount\"=@Amount, \"bill_to_contact_id\"=@BillToContactId, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
                 "WHERE \"id\"=@Id", dbo);
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static List<Common.Models.Matters.Matter> ListMattersForGroup(int billingGroupId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static Common.Models.Billing.BillingGroup Edit(
+            Transaction t,
+            Common.Models.Billing.BillingGroup model,
+            Common.Models.Account.Users modifier)
         {
-            List<Common.Models.Matters.Matter> list;
-
-            conn = OpenIfNeeded(conn);
-
-            list = DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
-                "SELECT * FROM \"matter\" WHERE \"billing_group_id\"=@BillingGroupId AND \"utc_disabled\" is null",
-                new { BillingGroupId = billingGroupId });
-
-            Close(conn, closeConnection);
-
-            return list;
+            return Edit(model, modifier, t.Connection, false);
         }
 
-        public static decimal SumExpensesForGroup(int billingGroupId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static List<Common.Models.Matters.Matter> ListMattersForGroup(
+            int billingGroupId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
-            conn = OpenIfNeeded(conn);
+            return DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
+                "SELECT * FROM \"matter\" WHERE \"billing_group_id\"=@BillingGroupId AND \"utc_disabled\" is null",
+                new { BillingGroupId = billingGroupId }, conn, closeConnection);
+        }
+
+        public static List<Common.Models.Matters.Matter> ListMattersForGroup(
+            Transaction t,
+            int billingGroupId)
+        {
+            return ListMattersForGroup(billingGroupId, t.Connection, false);
+        }
+
+        public static decimal SumExpensesForGroup(
+            int billingGroupId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            conn = DataHelper.OpenIfNeeded(conn);
 
             IEnumerable<dynamic> result = conn.Query("SELECT SUM(\"amount\") AS \"Amount\" FROM \"expense\" WHERE \"id\" IN " +
                 "(SELECT \"expense_id\" FROM \"expense_matter\" WHERE \"matter_id\" IN " +
@@ -144,7 +168,7 @@ namespace OpenLawOffice.Data.Billing
 
             IEnumerator<dynamic> enumerator = result.GetEnumerator();
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             while (enumerator.MoveNext())
             {
@@ -157,10 +181,19 @@ namespace OpenLawOffice.Data.Billing
             return 0;
         }
 
-        public static decimal SumBillableExpensesForGroup(int billingGroupId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static decimal SumExpensesForGroup(
+            Transaction t,
+            int billingGroupId)
         {
-            conn = OpenIfNeeded(conn);
+            return SumExpensesForGroup(billingGroupId, t.Connection, false);
+        }
+
+        public static decimal SumBillableExpensesForGroup(
+            int billingGroupId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            conn = DataHelper.OpenIfNeeded(conn);
 
             IEnumerable<dynamic> result = conn.Query("SELECT SUM(\"amount\") AS \"Amount\" FROM \"expense\" WHERE \"id\" IN " +
                 "(SELECT \"expense_id\" FROM \"expense_matter\" WHERE \"matter_id\" IN " +
@@ -171,7 +204,7 @@ namespace OpenLawOffice.Data.Billing
 
             IEnumerator<dynamic> enumerator = result.GetEnumerator();
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             while (enumerator.MoveNext())
             {
@@ -184,10 +217,19 @@ namespace OpenLawOffice.Data.Billing
             return 0;
         }
 
-        public static decimal SumFeesForGroup(int billingGroupId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static decimal SumBillableExpensesForGroup(
+            Transaction t,
+            int billingGroupId)
         {
-            conn = OpenIfNeeded(conn);
+            return SumBillableExpensesForGroup(billingGroupId, t.Connection, false);
+        }
+
+        public static decimal SumFeesForGroup(
+            int billingGroupId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            conn = DataHelper.OpenIfNeeded(conn);
 
             IEnumerable<dynamic> result = conn.Query("SELECT SUM(\"amount\") AS \"Amount\" FROM \"fee\" WHERE \"id\" IN " +
                 "(SELECT \"fee_id\" FROM \"fee_matter\" WHERE \"matter_id\" IN " +
@@ -196,7 +238,7 @@ namespace OpenLawOffice.Data.Billing
 
             IEnumerator<dynamic> enumerator = result.GetEnumerator();
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             while (enumerator.MoveNext())
             {
@@ -209,10 +251,19 @@ namespace OpenLawOffice.Data.Billing
             return 0;
         }
 
-        public static decimal SumBillableFeesForGroup(int billingGroupId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static decimal SumFeesForGroup(
+            Transaction t,
+            int billingGroupId)
         {
-            conn = OpenIfNeeded(conn);
+            return SumFeesForGroup(billingGroupId, t.Connection, false);
+        }
+
+        public static decimal SumBillableFeesForGroup(
+            int billingGroupId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            conn = DataHelper.OpenIfNeeded(conn);
 
             IEnumerable<dynamic> result = conn.Query("SELECT SUM(\"amount\") AS \"Amount\" FROM \"fee\" WHERE \"id\" IN " +
                 "(SELECT \"fee_id\" FROM \"fee_matter\" WHERE \"matter_id\" IN " +
@@ -223,7 +274,7 @@ namespace OpenLawOffice.Data.Billing
 
             IEnumerator<dynamic> enumerator = result.GetEnumerator();
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             while (enumerator.MoveNext())
             {
@@ -234,6 +285,13 @@ namespace OpenLawOffice.Data.Billing
             }
 
             return 0;
+        }
+
+        public static decimal SumBillableFeesForGroup(
+            Transaction t,
+            int billingGroupId)
+        {
+            return SumBillableFeesForGroup(billingGroupId, t.Connection, false);
         }
     }
 }

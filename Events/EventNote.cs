@@ -23,6 +23,7 @@ namespace OpenLawOffice.Data.Events
 {
     using System;
     using System.Data;
+    using System.Linq;
     using AutoMapper;
     using Dapper;
     using System.Collections.Generic;
@@ -32,65 +33,69 @@ namespace OpenLawOffice.Data.Events
     /// </summary>
     public static class EventNote
     {
-        public static Common.Models.Events.EventNote Get(Guid eventId, Guid noteId)
+        public static Common.Models.Events.EventNote Get(Guid eventId, Guid noteId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Events.EventNote, DBOs.Events.EventNote>(
                 "SELECT * FROM \"event_note\" WHERE \"event_id\"=@EventId AND \"note_id\"=@NoteId AND \"utc_disabled\" is null",
-                new { EventId = eventId, NoteId = noteId });
+                new { EventId = eventId, NoteId = noteId }, conn, closeConnection);
         }
 
-        public static Common.Models.Events.EventNote GetIgnoringDisable(Guid eventId, Guid noteId)
+        public static Common.Models.Events.EventNote GetIgnoringDisable(Guid eventId, Guid noteId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Events.EventNote, DBOs.Events.EventNote>(
                 "SELECT * FROM \"event_note\" WHERE \"event_id\"=@EventId AND \"note_id\"=@NoteId",
-                new { EventId = eventId, NoteId = noteId });
+                new { EventId = eventId, NoteId = noteId }, conn, closeConnection);
         }
 
-        public static Common.Models.Events.EventNote GetRelatedTask(Guid noteId)
+        public static Common.Models.Events.EventNote GetRelatedTask(Guid noteId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Events.EventNote, DBOs.Events.EventNote>(
                 "SELECT \"event\".* FROM \"event_note\" JOIN \"event\" ON \"event_note\".\"event_id\"=\"event\".\"id\" " +
                 "WHERE \"event_note\".\"note_id\"=@NoteId " +
                 "AND \"event_note\".\"utc_disabled\" is null " +
                 "AND \"event\".\"utc_disabled\" is null ",
-                new { NoteId = noteId });
+                new { NoteId = noteId }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Notes.Note> ListForEvent(Guid eventId)
+        public static List<Common.Models.Notes.Note> ListForEvent(Guid eventId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
-            List<Common.Models.Notes.Note> list =
-                DataHelper.List<Common.Models.Notes.Note, DBOs.Notes.Note>(
+            return DataHelper.List<Common.Models.Notes.Note, DBOs.Notes.Note>(
                 "SELECT * FROM \"note\" WHERE \"id\" IN (SELECT \"note_id\" FROM \"event_note\" WHERE \"event_id\"=@EventId AND \"utc_disabled\" is null)",
-                new { EventId = eventId });
-
-            return list;
+                new { EventId = eventId }, conn, closeConnection);
         }
 
         public static Common.Models.Events.EventNote Create(Common.Models.Events.EventNote model,
-            Common.Models.Account.Users creator)
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             model.Created = model.Modified = DateTime.UtcNow;
             model.CreatedBy = model.ModifiedBy = creator;
             DBOs.Events.EventNote dbo = Mapper.Map<DBOs.Events.EventNote>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                Common.Models.Events.EventNote currentModel = Get(model.Event.Id.Value, model.Note.Id.Value);
+            conn = DataHelper.OpenIfNeeded(conn);
 
-                if (currentModel != null)
-                { // Update
-                    conn.Execute("UPDATE \"event_note\" SET \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                        "\"utc_disabled\"=null, \"disabled_by_user_pid\"=null WHERE \"id\"=@Id", dbo);
-                    model.Created = currentModel.Created;
-                    model.CreatedBy = currentModel.CreatedBy;
-                }
-                else
-                { // Create
-                    conn.Execute("INSERT INTO \"event_note\" (\"id\", \"note_id\", \"event_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                        "VALUES (@Id, @NoteId, @EventId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                        dbo);
-                }
+            Common.Models.Events.EventNote currentModel = Get(model.Event.Id.Value, model.Note.Id.Value, conn, false);
+
+            if (currentModel != null)
+            { // Update
+                conn.Execute("UPDATE \"event_note\" SET \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                    "\"utc_disabled\"=null, \"disabled_by_user_pid\"=null WHERE \"id\"=@Id", dbo);
+                model.Created = currentModel.Created;
+                model.CreatedBy = currentModel.CreatedBy;
             }
+            else
+            { // Create
+                if (conn.Execute("INSERT INTO \"event_note\" (\"id\", \"note_id\", \"event_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                    "VALUES (@Id, @NoteId, @EventId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                    dbo) > 0)
+                    model.Id = conn.Query<DBOs.Events.EventNote>("SELECT currval(pg_get_serial_sequence('event_note', 'id')) AS \"id\"").Single().Id;
+            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }

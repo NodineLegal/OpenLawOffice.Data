@@ -25,7 +25,7 @@ namespace OpenLawOffice.Data.Billing
     using System.Collections.Generic;
     using System.Data;
 
-    public class Billing : Base
+    public static class Billing
     {
         public static Common.Models.Billing.Invoice SingleMatterBill(
             Common.Models.Billing.Invoice invoice,
@@ -38,7 +38,7 @@ namespace OpenLawOffice.Data.Billing
             decimal subtotal = 0;
             IDbTransaction trans;
 
-            conn = OpenIfNeeded(conn);
+            conn = DataHelper.OpenIfNeeded(conn);
 
             trans = conn.BeginTransaction();
 
@@ -69,7 +69,7 @@ namespace OpenLawOffice.Data.Billing
 
             trans.Commit();
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             return invoice;
         }
@@ -86,7 +86,7 @@ namespace OpenLawOffice.Data.Billing
             decimal subtotal = 0;
             IDbTransaction trans;
 
-            conn = OpenIfNeeded(conn);
+            conn = DataHelper.OpenIfNeeded(conn);
 
             trans = conn.BeginTransaction();
 
@@ -121,7 +121,7 @@ namespace OpenLawOffice.Data.Billing
 
             trans.Commit();
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             return invoice;
         }

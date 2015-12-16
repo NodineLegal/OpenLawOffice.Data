@@ -33,92 +33,176 @@ namespace OpenLawOffice.Data.Matters
     /// </summary>
     public static class ResponsibleUser
     {
-        public static Common.Models.Matters.ResponsibleUser Get(int id)
+        public static Common.Models.Matters.ResponsibleUser Get(
+            int id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Matters.ResponsibleUser, DBOs.Matters.ResponsibleUser>(
                 "SELECT * FROM \"responsible_user\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Matters.ResponsibleUser Get(Guid matterId, Guid userPId)
+        public static Common.Models.Matters.ResponsibleUser Get(
+            Transaction t,
+            int id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.ResponsibleUser Get(
+            Guid matterId, 
+            Guid userPId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Matters.ResponsibleUser, DBOs.Matters.ResponsibleUser>(
                 "SELECT * FROM \"responsible_user\" WHERE \"matter_id\"=@MatterId AND \"user_pid\"=@UserPId AND \"utc_disabled\" is null",
-                new { MatterId = matterId, UserPId = userPId });
+                new { MatterId = matterId, UserPId = userPId }, conn, closeConnection);
         }
 
-        public static Common.Models.Matters.ResponsibleUser GetIgnoringDisable(Guid matterId, Guid userPId)
+        public static Common.Models.Matters.ResponsibleUser Get(
+            Transaction t,
+            Guid matterId,
+            Guid userPId)
+        {
+            return Get(matterId, userPId, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.ResponsibleUser GetIgnoringDisable(
+            Guid matterId, 
+            Guid userPId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Matters.ResponsibleUser, DBOs.Matters.ResponsibleUser>(
                 "SELECT * FROM \"responsible_user\" WHERE \"matter_id\"=@MatterId AND \"user_pid\"=@UserPId",
-                new { MatterId = matterId, UserPId = userPId });
+                new { MatterId = matterId, UserPId = userPId }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Matters.ResponsibleUser> ListForMatter(Guid matterId)
+        public static Common.Models.Matters.ResponsibleUser GetIgnoringDisable(
+            Transaction t,
+            Guid matterId,
+            Guid userPId)
+        {
+            return GetIgnoringDisable(matterId, userPId, t.Connection, false);
+        }
+
+        public static List<Common.Models.Matters.ResponsibleUser> ListForMatter(
+            Guid matterId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             List<Common.Models.Matters.ResponsibleUser> list =
                 DataHelper.List<Common.Models.Matters.ResponsibleUser, DBOs.Matters.ResponsibleUser>(
                 "SELECT * FROM \"responsible_user\" WHERE \"matter_id\"=@MatterId AND \"utc_disabled\" is null",
-                new { MatterId = matterId });
+                new { MatterId = matterId }, conn, false);
 
             list.ForEach(x =>
             {
-                x.User = Account.Users.Get(x.User.PId.Value);
+                x.User = Account.Users.Get(x.User.PId.Value, conn, false);
             });
+
+            DataHelper.Close(conn, closeConnection);
 
             return list;
         }
 
-        public static Common.Models.Matters.ResponsibleUser Create(Common.Models.Matters.ResponsibleUser model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Matters.ResponsibleUser> ListForMatter(
+            Transaction t,
+            Guid matterId)
+        {
+            return ListForMatter(matterId, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.ResponsibleUser Create(
+            Common.Models.Matters.ResponsibleUser model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.Created = model.Modified = DateTime.UtcNow;
             model.CreatedBy = model.ModifiedBy = creator;
 
             DBOs.Matters.ResponsibleUser dbo = Mapper.Map<DBOs.Matters.ResponsibleUser>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"responsible_user\" (\"matter_id\", \"user_pid\", \"responsibility\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@MatterId, @UserPId, @Responsibility, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"responsible_user\" (\"matter_id\", \"user_pid\", \"responsibility\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@MatterId, @UserPId, @Responsibility, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
                 model.Id = conn.Query<DBOs.Matters.ResponsibleUser>("SELECT currval(pg_get_serial_sequence('responsible_user', 'id')) AS \"id\"").Single().Id;
-            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.ResponsibleUser Edit(Common.Models.Matters.ResponsibleUser model,
-            Common.Models.Account.Users modifier)
+        public static Common.Models.Matters.ResponsibleUser Create(
+            Transaction t,
+            Common.Models.Matters.ResponsibleUser model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.ResponsibleUser Edit(
+            Common.Models.Matters.ResponsibleUser model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Matters.ResponsibleUser dbo = Mapper.Map<DBOs.Matters.ResponsibleUser>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"responsible_user\" SET " +
-                    "\"matter_id\"=@MatterId, \"user_pid\"=@UserPId, \"responsibility\"=@Responsibility, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"responsible_user\" SET " +
+                "\"matter_id\"=@MatterId, \"user_pid\"=@UserPId, \"responsibility\"=@Responsibility, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.ResponsibleUser Disable(Common.Models.Matters.ResponsibleUser model,
-            Common.Models.Account.Users disabler)
+        public static Common.Models.Matters.ResponsibleUser Edit(
+            Transaction t,
+            Common.Models.Matters.ResponsibleUser model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.ResponsibleUser Disable(
+            Common.Models.Matters.ResponsibleUser model,
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Matters.MatterContact,
-                DBOs.Matters.MatterContact>("responsible_user", disabler.PId.Value, model.Id);
+                DBOs.Matters.MatterContact>("responsible_user", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.ResponsibleUser Enable(Common.Models.Matters.ResponsibleUser model,
-            Common.Models.Account.Users enabler)
+        public static Common.Models.Matters.ResponsibleUser Disable(
+            Transaction t,
+            Common.Models.Matters.ResponsibleUser model,
+            Common.Models.Account.Users disabler)
+        {
+            return Disable(model, disabler, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.ResponsibleUser Enable(
+            Common.Models.Matters.ResponsibleUser model,
+            Common.Models.Account.Users enabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = enabler;
             model.Modified = DateTime.UtcNow;
@@ -126,9 +210,17 @@ namespace OpenLawOffice.Data.Matters
             model.Disabled = null;
 
             DataHelper.Enable<Common.Models.Matters.MatterContact,
-                DBOs.Matters.MatterContact>("responsible_user", enabler.PId.Value, model.Id);
+                DBOs.Matters.MatterContact>("responsible_user", enabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Matters.ResponsibleUser Enable(
+            Transaction t,
+            Common.Models.Matters.ResponsibleUser model,
+            Common.Models.Account.Users enabler)
+        {
+            return Enable(model, enabler, t.Connection, false);
         }
     }
 }

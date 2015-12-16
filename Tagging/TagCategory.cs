@@ -33,59 +33,115 @@ namespace OpenLawOffice.Data.Tagging
     /// </summary>
     public static class TagCategory
     {
-        public static Common.Models.Tagging.TagCategory Get(int id)
+        public static Common.Models.Tagging.TagCategory Get(
+            int id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tagging.TagCategory, DBOs.Tagging.TagCategory>(
                 "SELECT * FROM \"tag_category\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Tagging.TagCategory Get(string name)
+        public static Common.Models.Tagging.TagCategory Get(
+            Transaction t,
+            int id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static Common.Models.Tagging.TagCategory Get(
+            string name,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tagging.TagCategory, DBOs.Tagging.TagCategory>(
                 "SELECT * FROM \"tag_category\" WHERE \"name\"=@name AND \"utc_disabled\" is null",
-                new { name = name });
+                new { name = name }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Tagging.TagCategory> List(string name)
+        public static Common.Models.Tagging.TagCategory Get(
+            Transaction t,
+            string name)
+        {
+            return Get(name, t.Connection, false);
+        }
+
+        public static List<Common.Models.Tagging.TagCategory> List(
+            string name,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Tagging.TagCategory, DBOs.Tagging.TagCategory>(
                 "SELECT * FROM \"tag_category\" WHERE LOWER(\"name\") LIKE '%' || @Query || '%' AND \"utc_disabled\" is null",
-                new { Query = name.ToLower() });
+                new { Query = name.ToLower() }, conn, closeConnection);
         }
 
-        public static Common.Models.Tagging.TagCategory Create(Common.Models.Tagging.TagCategory model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Tagging.TagCategory> List(
+            Transaction t,
+            string name)
+        {
+            return List(name, t.Connection, false);
+        }
+
+        public static Common.Models.Tagging.TagCategory Create(
+            Common.Models.Tagging.TagCategory model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
             DBOs.Tagging.TagCategory dbo = Mapper.Map<DBOs.Tagging.TagCategory>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"tag_category\" (\"name\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Name, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"tag_category\" (\"name\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Name, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
                 model.Id = conn.Query<DBOs.Tagging.TagCategory>("SELECT currval(pg_get_serial_sequence('tag_category', 'id')) AS \"id\"").Single().Id;
-            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Tagging.TagCategory Disable(Common.Models.Tagging.TagCategory model,
-            Common.Models.Account.Users disabler)
+        public static Common.Models.Tagging.TagCategory Create(
+            Transaction t,
+            Common.Models.Tagging.TagCategory model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Tagging.TagCategory Disable(
+            Common.Models.Tagging.TagCategory model,
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Tagging.TagCategory,
-                DBOs.Tagging.TagCategory>("tag_category", disabler.PId.Value, model.Id);
+                DBOs.Tagging.TagCategory>("tag_category", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Tagging.TagCategory Enable(Common.Models.Tagging.TagCategory model,
-            Common.Models.Account.Users enabler)
+        public static Common.Models.Tagging.TagCategory Disable(
+            Transaction t,
+            Common.Models.Tagging.TagCategory model,
+            Common.Models.Account.Users disabler)
+        {
+            return Disable(model, disabler, t.Connection, false);
+        }
+
+        public static Common.Models.Tagging.TagCategory Enable(
+            Common.Models.Tagging.TagCategory model,
+            Common.Models.Account.Users enabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = enabler;
             model.Modified = DateTime.UtcNow;
@@ -93,9 +149,17 @@ namespace OpenLawOffice.Data.Tagging
             model.Disabled = null;
 
             DataHelper.Enable<Common.Models.Tagging.TagCategory,
-                DBOs.Tagging.TagCategory>("tag_category", enabler.PId.Value, model.Id);
+                DBOs.Tagging.TagCategory>("tag_category", enabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Tagging.TagCategory Enable(
+            Transaction t,
+            Common.Models.Tagging.TagCategory model,
+            Common.Models.Account.Users enabler)
+        {
+            return Enable(model, enabler, t.Connection, false);
         }
     }
 }

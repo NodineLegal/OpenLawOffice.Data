@@ -25,28 +25,54 @@ namespace OpenLawOffice.Data.Tasks
     using System.Data;
     using AutoMapper;
     using Dapper;
+    using System.Linq;
 
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
     public static class TaskTime
     {
-        public static Common.Models.Tasks.TaskTime Get(Guid id)
+        public static Common.Models.Tasks.TaskTime Get(
+            Guid id,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.TaskTime, DBOs.Tasks.TaskTime>(
                 "SELECT * FROM \"task_time\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.TaskTime Get(long taskId, Guid timeId)
+        public static Common.Models.Tasks.TaskTime Get(
+            Transaction t,
+            Guid id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskTime Get(
+            long taskId, 
+            Guid timeId,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.TaskTime, DBOs.Tasks.TaskTime>(
                 "SELECT * FROM \"task_time\" WHERE \"task_id\"=@TaskId AND \"time_id\"=@TimeId AND \"utc_disabled\" is null",
-                new { TaskId = taskId, TimeId = timeId });
+                new { TaskId = taskId, TimeId = timeId }, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.TaskTime Create(Common.Models.Tasks.TaskTime model,
-            Common.Models.Account.Users creator)
+        public static Common.Models.Tasks.TaskTime Get(
+            Transaction t,
+            long taskId,
+            Guid timeId)
+        {
+            return Get(taskId, timeId, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskTime Create(
+            Common.Models.Tasks.TaskTime model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.Created = model.Modified = DateTime.UtcNow;
@@ -54,14 +80,24 @@ namespace OpenLawOffice.Data.Tasks
 
             DBOs.Tasks.TaskTime dbo = Mapper.Map<DBOs.Tasks.TaskTime>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"task_time\" (\"id\", \"task_id\", \"time_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Id, @TaskId, @TimeId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"task_time\" (\"id\", \"task_id\", \"time_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Id, @TaskId, @TimeId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
+                model.Id = conn.Query<DBOs.Tasks.TaskResponsibleUser>("SELECT currval(pg_get_serial_sequence('task_time', 'id')) AS \"id\"").Single().Id;
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Tasks.TaskTime Create(
+            Transaction t,
+            Common.Models.Tasks.TaskTime model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
         }
     }
 }

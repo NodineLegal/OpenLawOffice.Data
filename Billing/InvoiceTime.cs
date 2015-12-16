@@ -24,78 +24,88 @@ namespace OpenLawOffice.Data.Billing
     using System;
     using System.Collections.Generic;
     using System.Data;
+    using System.Linq;
     using AutoMapper;
     using Dapper;
 
-    public class InvoiceTime : Base
+    public static class InvoiceTime
     {
-        public static List<Common.Models.Billing.InvoiceTime> ListForMatter(Guid matterId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static List<Common.Models.Billing.InvoiceTime> ListForMatter(
+            Guid matterId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
-            List<Common.Models.Billing.InvoiceTime> list;
-
-            conn = OpenIfNeeded(conn);
-
-            list = DataHelper.List<Common.Models.Billing.InvoiceTime, DBOs.Billing.InvoiceTime>(
+            return DataHelper.List<Common.Models.Billing.InvoiceTime, DBOs.Billing.InvoiceTime>(
                 "SELECT * FROM \"invoice_time\" WHERE \"time_id\" IN " +
                 "   (SELECT \"time_id\" FROM \"task_time\" WHERE \"task_id\" IN " +
                 "       (SELECT \"task_id\" FROM \"task_matter\" WHERE \"matter_id\"=@MatterId) " +
                 "   ) AND " +
                 "\"utc_disabled\" is null ORDER BY \"utc_created\" ASC",
-                new { MatterId = matterId });
-
-            Close(conn, closeConnection);
-
-            return list;
+                new { MatterId = matterId }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Billing.InvoiceTime> ListForMatterAndInvoice(Guid invoiceId, Guid matterId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static List<Common.Models.Billing.InvoiceTime> ListForMatter(
+            Transaction t,
+            Guid matterId)
         {
-            List<Common.Models.Billing.InvoiceTime> list;
+            return ListForMatter(matterId, t.Connection, false);
+        }
 
-            conn = OpenIfNeeded(conn);
-
-            list = DataHelper.List<Common.Models.Billing.InvoiceTime, DBOs.Billing.InvoiceTime>(
+        public static List<Common.Models.Billing.InvoiceTime> ListForMatterAndInvoice(
+            Guid invoiceId, 
+            Guid matterId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            return DataHelper.List<Common.Models.Billing.InvoiceTime, DBOs.Billing.InvoiceTime>(
                 "SELECT * FROM \"invoice_time\" WHERE \"time_id\" IN " +
                 "   (SELECT \"time_id\" FROM \"task_time\" WHERE \"task_id\" IN " +
                 "       (SELECT \"task_id\" FROM \"task_matter\" WHERE \"matter_id\"=@MatterId) " +
                 "   ) AND " +
                 "\"invoice_id\"=@InvoiceId AND " +
                 "\"utc_disabled\" is null ORDER BY \"utc_created\" ASC",
-                new { InvoiceId = invoiceId, MatterId = matterId });
-
-            Close(conn, closeConnection);
-
-            return list;
+                new { InvoiceId = invoiceId, MatterId = matterId }, conn, closeConnection);
         }
 
-        public static Common.Models.Billing.InvoiceTime Get(Guid invoiceId, Guid timeId,
-            IDbConnection conn = null, bool closeConnection = true)
+        public static List<Common.Models.Billing.InvoiceTime> ListForMatterAndInvoice(
+            Transaction t,
+            Guid invoiceId,
+            Guid matterId)
         {
-            Common.Models.Billing.InvoiceTime item;
-
-            conn = OpenIfNeeded(conn);
-
-            item = DataHelper.Get<Common.Models.Billing.InvoiceTime, DBOs.Billing.InvoiceTime>(
-                "SELECT * FROM \"invoice_time\" WHERE \"invoice_id\"=@InvoiceId AND \"time_id\"=@TimeId",
-                new { InvoiceId = invoiceId, TimeId = timeId });
-
-            Close(conn, closeConnection);
-
-            return item;
+            return ListForMatterAndInvoice(invoiceId, matterId, t.Connection, false);
         }
 
-        public static Common.Models.Billing.InvoiceTime Create(Common.Models.Billing.InvoiceTime model,
+        public static Common.Models.Billing.InvoiceTime Get(
+            Guid invoiceId, 
+            Guid timeId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            return DataHelper.Get<Common.Models.Billing.InvoiceTime, DBOs.Billing.InvoiceTime>(
+                "SELECT * FROM \"invoice_time\" WHERE \"invoice_id\"=@InvoiceId AND \"time_id\"=@TimeId",
+                new { InvoiceId = invoiceId, TimeId = timeId }, conn, closeConnection);
+        }
+
+        public static Common.Models.Billing.InvoiceTime Get(
+            Transaction t,
+            Guid invoiceId,
+            Guid timeId)
+        {
+            return Get(invoiceId, timeId, t.Connection, false);
+        }
+
+        public static Common.Models.Billing.InvoiceTime Create(
+            Common.Models.Billing.InvoiceTime model,
             Common.Models.Account.Users creator,
-            IDbConnection conn = null, bool closeConnection = true)
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.Created = model.Modified = DateTime.UtcNow;
             model.CreatedBy = model.ModifiedBy = creator;
             DBOs.Billing.InvoiceTime dbo = Mapper.Map<DBOs.Billing.InvoiceTime>(model);
             
-            conn = OpenIfNeeded(conn);
+            conn = DataHelper.OpenIfNeeded(conn);
 
             Common.Models.Billing.InvoiceTime currentModel = Get(model.Invoice.Id.Value, model.Time.Id.Value);
 
@@ -108,14 +118,23 @@ namespace OpenLawOffice.Data.Billing
             }
             else
             { // Create
-                conn.Execute("INSERT INTO \"invoice_time\" (\"id\", \"time_id\", \"invoice_id\", \"duration\", \"details\", \"price_per_hour\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                if (conn.Execute("INSERT INTO \"invoice_time\" (\"id\", \"time_id\", \"invoice_id\", \"duration\", \"details\", \"price_per_hour\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                     "VALUES (@Id, @TimeId, @InvoiceId, @Duration, @Details, @PricePerHour, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+                    dbo) > 0)
+                    model.Id = conn.Query<DBOs.Billing.InvoiceTime>("SELECT currval(pg_get_serial_sequence('invoice_time', 'id')) AS \"id\"").Single().Id;
             }
 
-            Close(conn, closeConnection);
+            DataHelper.Close(conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Billing.InvoiceTime Create(
+            Transaction t,
+            Common.Models.Billing.InvoiceTime model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
         }
     }
 }

@@ -30,22 +30,49 @@ namespace OpenLawOffice.Data.External
 
     public static class ExternalSession
     {
-        public static Common.Models.External.ExternalSession Get(Guid token)
+        public static Common.Models.External.ExternalSession Get(
+            Guid token,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.External.ExternalSession, DBOs.External.ExternalSession>(
                 "SELECT * FROM \"external_session\" WHERE \"id\"=@Id",
-                new { Id = token });
+                new { Id = token }, conn, closeConnection);
         }
 
-        public static Common.Models.External.ExternalSession Get(string appName, Guid machineId, string username)
+        public static Common.Models.External.ExternalSession Get(
+            Transaction t,
+            Guid token)
+        {
+            return Get(token, t.Connection, false);
+        }
+
+        public static Common.Models.External.ExternalSession Get(
+            string appName, 
+            Guid machineId, 
+            string username,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.External.ExternalSession, DBOs.External.ExternalSession>(
                 "SELECT * FROM \"external_session\" WHERE \"app_name\"=@AppName AND \"machine_id\"=@MachineId " +
                 "AND \"user_pid\" IN (SELECT \"pId\" FROM \"Users\" WHERE \"Username\"=@Username)",
-                new { AppName = appName, MachineId = machineId, Username = username });
+                new { AppName = appName, MachineId = machineId, Username = username }, conn, closeConnection);
         }
 
-        public static Common.Models.External.ExternalSession Create(Common.Models.External.ExternalSession model)
+        public static Common.Models.External.ExternalSession Get(
+            Transaction t,
+            string appName,
+            Guid machineId,
+            string username)
+        {
+            return Get(appName, machineId, username, t.Connection, false);
+        }
+
+        public static Common.Models.External.ExternalSession Create(
+            Common.Models.External.ExternalSession model,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.Id = Guid.NewGuid();
             model.Created = DateTime.UtcNow;
@@ -54,45 +81,86 @@ namespace OpenLawOffice.Data.External
 
             DBOs.External.ExternalSession dbo = Mapper.Map<DBOs.External.ExternalSession>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"external_session\" (\"id\", \"user_pid\", \"app_name\", \"utc_created\", \"utc_expires\", \"timeout\", \"machine_id\") " +
-                    "VALUES (@Id, @UserPId, @AppName, @UtcCreated, @UtcExpires, @Timeout, @MachineId)",
-                    dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"external_session\" (\"id\", \"user_pid\", \"app_name\", \"utc_created\", \"utc_expires\", \"timeout\", \"machine_id\") " +
+                "VALUES (@Id, @UserPId, @AppName, @UtcCreated, @UtcExpires, @Timeout, @MachineId)",
+                dbo) > 0)
+                model.Id = conn.Query<DBOs.External.ExternalSession>("SELECT currval(pg_get_serial_sequence('external_session', 'id')) AS \"id\"").Single().Id;
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.External.ExternalSession Update(Common.Models.External.ExternalSession model)
+        public static Common.Models.External.ExternalSession Create(
+            Transaction t,
+            Common.Models.External.ExternalSession model)
         {
-            Delete(model);
-            return Create(model);
+            return Create(model, t.Connection, false);
         }
 
-        public static Common.Models.External.ExternalSession Renew(Common.Models.External.ExternalSession model)
+        public static Common.Models.External.ExternalSession Update(
+            Common.Models.External.ExternalSession model,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            Delete(model, conn, false);
+            return Create(model, conn, closeConnection);
+        }
+
+        public static Common.Models.External.ExternalSession Update(
+            Transaction t,
+            Common.Models.External.ExternalSession model)
+        {
+            return Update(model, t.Connection, false);
+        }
+
+        public static Common.Models.External.ExternalSession Renew(
+            Common.Models.External.ExternalSession model,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             Common.Models.External.ExternalSession curSes = Get(model.Id.Value);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"external_session\" SET " +
-                    "\"utc_expires\"=@UtcExpires WHERE \"id\"=@Id",
-                    new { Id = model.Id.Value, UtcExpires = DateTime.UtcNow.AddSeconds(curSes.Timeout) });
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"external_session\" SET " +
+                "\"utc_expires\"=@UtcExpires WHERE \"id\"=@Id",
+                new { Id = model.Id.Value, UtcExpires = DateTime.UtcNow.AddSeconds(curSes.Timeout) });
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.External.ExternalSession Delete(Common.Models.External.ExternalSession model)
+        public static Common.Models.External.ExternalSession Renew(
+            Transaction t,
+            Common.Models.External.ExternalSession model)
         {
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("DELETE FROM \"external_session\" WHERE \"id\"=@Id",
-                    new { Id = model.Id.Value });
-            }
+            return Renew(model, t.Connection, false);
+        }
+
+        public static Common.Models.External.ExternalSession Delete(
+            Common.Models.External.ExternalSession model,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("DELETE FROM \"external_session\" WHERE \"id\"=@Id",
+                new { Id = model.Id.Value });
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.External.ExternalSession Delete(
+            Transaction t,
+            Common.Models.External.ExternalSession model)
+        {
+            return Delete(model, t.Connection, false);
         }
     }
 }

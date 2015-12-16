@@ -33,39 +33,41 @@ namespace OpenLawOffice.Data.Events
     /// </summary>
     public static class EventMatter
     {
-        public static Common.Models.Events.EventMatter Get(Guid id)
+        public static Common.Models.Events.EventMatter Get(Guid id,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Events.EventMatter, DBOs.Events.EventMatter>(
                 "SELECT * FROM \"event_matter\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Events.EventMatter Get(Guid eventId, Guid matterId)
+        public static Common.Models.Events.EventMatter Get(Guid eventId, Guid matterId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Events.EventMatter, DBOs.Events.EventMatter>(
                 "SELECT * FROM \"event_matter\" WHERE \"event_id\"=@EventId AND \"matter_id\"=@MatterId AND \"utc_disabled\" is null",
-                new { eventId = eventId, MatterId = matterId });
+                new { eventId = eventId, MatterId = matterId }, conn, closeConnection);
         }
 
-        public static Common.Models.Events.EventMatter GetFor(Guid eventId)
+        public static Common.Models.Events.EventMatter GetFor(Guid eventId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Events.EventMatter, DBOs.Events.EventMatter>(
                 "SELECT * FROM \"event_matter\" WHERE \"event_id\"=@EventId AND \"utc_disabled\" is null",
-                new { eventId = eventId });
+                new { eventId = eventId }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Matters.Matter> ListForEvent(Guid eventId)
+        public static List<Common.Models.Matters.Matter> ListForEvent(Guid eventId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
-            List<Common.Models.Matters.Matter> list =
-                DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
+            return DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
                 "SELECT * FROM \"matter\" WHERE \"id\" IN (SELECT \"matter_id\" FROM \"event_matter\" WHERE \"event_id\"=@EventId AND \"utc_disabled\" is null)",
-                new { EventId = eventId });
-
-            return list;
+                new { EventId = eventId }, conn, closeConnection);
         }
 
         public static Common.Models.Events.EventMatter Create(Common.Models.Events.EventMatter model,
-            Common.Models.Account.Users creator)
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             DBOs.Events.EventMatter dbo;
             Common.Models.Events.EventMatter currentModel;
@@ -81,23 +83,25 @@ namespace OpenLawOffice.Data.Events
 
             dbo = Mapper.Map<DBOs.Events.EventMatter>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"event_matter\" (\"id\", \"event_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Id, @EventId, @MatterId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"event_assigned_conttter\" (\"id\", \"event_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Id, @EventId, @MatterId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo);
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static void Delete(Common.Models.Events.EventMatter model, Common.Models.Account.Users deleter)
+        public static void Delete(Common.Models.Events.EventMatter model, Common.Models.Account.Users deleter,
+            IDbConnection conn = null, bool closeConnection = true)
         {
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("DELETE FROM \"event_matter\" WHERE \"id\"=@Id",
-                    new { Id = model.Id.Value });
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("DELETE FROM \"event_matter\" WHERE \"id\"=@Id",
+                new { Id = model.Id.Value });
+
+            DataHelper.Close(conn, closeConnection);
         }
     }
 }

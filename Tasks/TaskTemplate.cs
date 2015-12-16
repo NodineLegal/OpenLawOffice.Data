@@ -33,55 +33,90 @@ namespace OpenLawOffice.Data.Tasks
     /// </summary>
     public static class TaskTemplate
     {
-        public static Common.Models.Tasks.TaskTemplate Get(long id)
+        public static Common.Models.Tasks.TaskTemplate Get(
+            long id,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.TaskTemplate, DBOs.Tasks.TaskTemplate>(
                 "SELECT * FROM \"task_template\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Tasks.TaskTemplate> List()
+        public static Common.Models.Tasks.TaskTemplate Get(
+            Transaction t,
+            long id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static List<Common.Models.Tasks.TaskTemplate> List(
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Tasks.TaskTemplate, DBOs.Tasks.TaskTemplate>(
-                "SELECT * FROM \"task_template\" WHERE \"utc_disabled\" is null");
+                "SELECT * FROM \"task_template\" WHERE \"utc_disabled\" is null",
+                null, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.TaskTemplate Create(Common.Models.Tasks.TaskTemplate model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Tasks.TaskTemplate> List(
+            Transaction t)
+        {
+            return List(t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskTemplate Create(
+            Common.Models.Tasks.TaskTemplate model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
             DBOs.Tasks.TaskTemplate dbo = Mapper.Map<DBOs.Tasks.TaskTemplate>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"task_template\" (\"task_template_title\", \"title\", \"description\", \"projected_start\", \"due_date\", \"projected_end\", " +
-                    "\"actual_end\", \"active\", \"utc_created\", " +
-                    "\"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@TaskTemplateTitle, @Title, @Description, @ProjectedStart, @DueDate, @ProjectedEnd, @ActualEnd, " +
-                    "@Active, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"task_template\" (\"task_template_title\", \"title\", \"description\", \"projected_start\", \"due_date\", \"projected_end\", " +
+                "\"actual_end\", \"active\", \"utc_created\", " +
+                "\"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@TaskTemplateTitle, @Title, @Description, @ProjectedStart, @DueDate, @ProjectedEnd, @ActualEnd, " +
+                "@Active, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
                 model.Id = conn.Query<DBOs.Tasks.TaskTemplate>("SELECT currval(pg_get_serial_sequence('task_template', 'id')) AS \"id\"").Single().Id;
-            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Tasks.TaskTemplate Edit(Common.Models.Tasks.TaskTemplate model,
-            Common.Models.Account.Users modifier)
+        public static Common.Models.Tasks.TaskTemplate Create(
+            Transaction t,
+            Common.Models.Tasks.TaskTemplate model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskTemplate Edit(
+            Common.Models.Tasks.TaskTemplate model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Tasks.TaskTemplate dbo = Mapper.Map<DBOs.Tasks.TaskTemplate>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"task_template\" SET \"task_template_title\"=@TaskTemplateTitle, " +
-                    "\"title\"=@Title, \"description\"=@Description, \"projected_start\"=@ProjectedStart, " +
-                    "\"due_date\"=@DueDate, \"projected_end\"=@ProjectedEnd, \"actual_end\"=@ActualEnd, " +
-                    "\"active\"=@Active, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"task_template\" SET \"task_template_title\"=@TaskTemplateTitle, " +
+                "\"title\"=@Title, \"description\"=@Description, \"projected_start\"=@ProjectedStart, " +
+                "\"due_date\"=@DueDate, \"projected_end\"=@ProjectedEnd, \"actual_end\"=@ActualEnd, " +
+                "\"active\"=@Active, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
 
             //if (model.Parent != null && model.Parent.Id.HasValue)
             //    UpdateGroupingTaskProperties(OpenLawOffice.Data.Tasks.Task.Get(model.Parent.Id.Value));
@@ -89,16 +124,35 @@ namespace OpenLawOffice.Data.Tasks
             return model;
         }
 
-        public static Common.Models.Tasks.TaskTemplate Disable(Common.Models.Tasks.TaskTemplate model,
-            Common.Models.Account.Users disabler)
+        public static Common.Models.Tasks.TaskTemplate Edit(
+            Transaction t,
+            Common.Models.Tasks.TaskTemplate model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskTemplate Disable(
+            Common.Models.Tasks.TaskTemplate model,
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Tasks.TaskTemplate,
-                DBOs.Tasks.TaskTemplate>("task_template", disabler.PId.Value, model.Id);
+                DBOs.Tasks.TaskTemplate>("task_template", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Tasks.TaskTemplate Disable(
+            Transaction t,
+            Common.Models.Tasks.TaskTemplate model,
+            Common.Models.Account.Users disabler)
+        {
+            return Disable(model, disabler, t.Connection, false);
         }
     }
 }

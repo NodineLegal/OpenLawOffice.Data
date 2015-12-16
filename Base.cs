@@ -23,23 +23,7 @@ namespace OpenLawOffice.Data
 {
     using System.Data;
 
-    public class Base
+    public static class Base
     {
-        protected static IDbConnection OpenIfNeeded(IDbConnection conn = null)
-        {
-            if (conn == null)
-            {
-                conn = Database.Instance.GetConnection();
-                conn.Open();
-            }
-
-            return conn;
-        }
-
-        protected static void Close(IDbConnection conn = null, bool closeConnection = false)
-        {
-            if (closeConnection)
-                conn.Close();
-        }
     }
 }

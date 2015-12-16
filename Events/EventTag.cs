@@ -33,93 +33,105 @@ namespace OpenLawOffice.Data.Events
     /// </summary>
     public static class EventTag
     {
-        public static Common.Models.Events.EventTag Get(Guid id)
+        public static Common.Models.Events.EventTag Get(Guid id,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             Common.Models.Events.EventTag model =
                 DataHelper.Get<Common.Models.Events.EventTag, DBOs.Events.EventTag>(
                 "SELECT * FROM \"event_tag\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, false);
 
             if (model == null) return null;
 
             if (model.TagCategory != null)
-                model.TagCategory = Tagging.TagCategory.Get(model.TagCategory.Id);
+                model.TagCategory = Tagging.TagCategory.Get(model.TagCategory.Id, conn, false);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static List<Common.Models.Events.EventTag> List()
+        public static List<Common.Models.Events.EventTag> List(
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Events.EventTag, DBOs.Events.EventTag>(
-                "SELECT * FROM \"event_tag\" WHERE \"utc_disabled\" is null");
+                "SELECT * FROM \"event_tag\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
         }
 
-        public static List<Common.Models.Events.EventTag> ListForEvent(Guid eventId)
+        public static List<Common.Models.Events.EventTag> ListForEvent(Guid eventId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             List<Common.Models.Events.EventTag> list =
                 DataHelper.List<Common.Models.Events.EventTag, DBOs.Events.EventTag>(
                 "SELECT * FROM \"event_tag\" WHERE \"event_id\"=@EventId AND \"utc_disabled\" is null",
-                new { EventId = eventId });
+                new { EventId = eventId }, conn, false);
 
             list.ForEach(x =>
             {
-                x.TagCategory = Tagging.TagCategory.Get(x.TagCategory.Id);
+                x.TagCategory = Tagging.TagCategory.Get(x.TagCategory.Id, conn, false);
             });
+
+            DataHelper.Close(conn, closeConnection);
 
             return list;
         }
 
         public static Common.Models.Events.EventTag Create(Common.Models.Events.EventTag model,
-            Common.Models.Account.Users creator)
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
 
-            Common.Models.Tagging.TagCategory existingTagCat = Tagging.TagCategory.Get(model.TagCategory.Name);
+            Common.Models.Tagging.TagCategory existingTagCat = 
+                Tagging.TagCategory.Get(model.TagCategory.Name, conn, false);
 
             if (existingTagCat == null)
             {
-                existingTagCat = Tagging.TagCategory.Create(model.TagCategory, creator);
+                existingTagCat = Tagging.TagCategory.Create(model.TagCategory, creator, conn, false);
             }
 
             model.TagCategory = existingTagCat;
             DBOs.Events.EventTag dbo = Mapper.Map<DBOs.Events.EventTag>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"event_tag\" (\"id\", \"event_id\", \"tag_category_id\", \"tag\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Id, @EventId, @TagCategoryId, @Tag, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"event_tag\" (\"id\", \"event_id\", \"tag_category_id\", \"tag\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Id, @EventId, @TagCategoryId, @Tag, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
+                model.Id = conn.Query<DBOs.Events.EventTag>("SELECT currval(pg_get_serial_sequence('event_tag', 'id')) AS \"id\"").Single().Id;
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
         public static Common.Models.Events.EventTag Edit(Common.Models.Events.EventTag model,
-            Common.Models.Account.Users modifier)
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Events.EventTag dbo = Mapper.Map<DBOs.Events.EventTag>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"event_tag\" SET " +
-                    "\"event_id\"=@EventId, \"tag\"=@Tag, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
 
-            model.TagCategory = UpdateTagCategory(model, modifier);
+            conn.Execute("UPDATE \"event_tag\" SET " +
+                "\"event_id\"=@EventId, \"tag\"=@Tag, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
         private static Common.Models.Tagging.TagCategory UpdateTagCategory(
             Common.Models.Events.EventTag model,
-            Common.Models.Account.Users modifier)
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, bool closeConnection = true)
         {
-            Common.Models.Events.EventTag currentTag = Get(model.Id.Value);
+            Common.Models.Events.EventTag currentTag = Get(model.Id.Value, conn, false);
 
             if (currentTag.TagCategory != null)
             {
@@ -137,12 +149,9 @@ namespace OpenLawOffice.Data.Events
                     // If current has tag & new !has tag
                     // Update - drop tagcat
                     currentTag.TagCategory = null;
-
-                    using (IDbConnection conn = Database.Instance.GetConnection())
-                    {
-                        conn.Execute("UPDATE \"event_tag\" SET \"tag_category_id\"=null WHERE \"id\"=@Id",
-                            new { Id = model.Id.Value });
-                    }
+                    
+                    conn.Execute("UPDATE \"event_tag\" SET \"tag_category_id\"=null WHERE \"id\"=@Id",
+                        new { Id = model.Id.Value });
                 }
             }
             else
@@ -156,19 +165,22 @@ namespace OpenLawOffice.Data.Events
                 // If current !has tag & new !has tag - do nothing
             }
 
+            DataHelper.Close(conn, closeConnection);
+
             return model.TagCategory;
         }
 
         private static Common.Models.Tagging.TagCategory AddOrChangeTagCategory(
             Common.Models.Events.EventTag tag,
-            Common.Models.Account.Users modifier)
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             Common.Models.Tagging.TagCategory newTagCat = null;
 
             // Check for existing name
             if (tag.TagCategory != null && !string.IsNullOrEmpty(tag.TagCategory.Name))
             {
-                newTagCat = Tagging.TagCategory.Get(tag.TagCategory.Name);
+                newTagCat = Tagging.TagCategory.Get(tag.TagCategory.Name, conn, false);
             }
 
             // Either need to use existing or create a new tag category
@@ -180,7 +192,7 @@ namespace OpenLawOffice.Data.Events
                 // If new tagcat was disabled, it needs enabled
                 if (newTagCat.Disabled.HasValue)
                 {
-                    tag.TagCategory = Tagging.TagCategory.Enable(tag.TagCategory, modifier);
+                    tag.TagCategory = Tagging.TagCategory.Enable(tag.TagCategory, modifier, conn, false);
                 }
             }
             else
@@ -189,30 +201,33 @@ namespace OpenLawOffice.Data.Events
                 tag.TagCategory = Tagging.TagCategory.Create(tag.TagCategory, modifier);
             }
 
+            conn = DataHelper.OpenIfNeeded(conn);
+
             // Update MatterTag's TagCategoryId
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"event_tag\" SET \"tag_category_id\"=@TagCategoryId WHERE \"id\"=@Id",
-                    new { Id = tag.Id.Value, TagCategoryId = tag.TagCategory.Id });
-            }
+            conn.Execute("UPDATE \"event_tag\" SET \"tag_category_id\"=@TagCategoryId WHERE \"id\"=@Id",
+                new { Id = tag.Id.Value, TagCategoryId = tag.TagCategory.Id });
+
+            DataHelper.Close(conn, closeConnection);
 
             return tag.TagCategory;
         }
 
         public static Common.Models.Events.EventTag Disable(Common.Models.Events.EventTag model,
-            Common.Models.Account.Users disabler)
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Events.EventTag,
-                DBOs.Events.EventTag>("event_tag", disabler.PId.Value, model.Id);
+                DBOs.Events.EventTag>("event_tag", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
         }
 
         public static Common.Models.Events.EventTag Enable(Common.Models.Events.EventTag model,
-            Common.Models.Account.Users enabler)
+            Common.Models.Account.Users enabler,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             model.ModifiedBy = enabler;
             model.Modified = DateTime.UtcNow;
@@ -220,30 +235,32 @@ namespace OpenLawOffice.Data.Events
             model.Disabled = null;
 
             DataHelper.Enable<Common.Models.Events.EventTag,
-                DBOs.Events.EventTag>("event_tag", enabler.PId.Value, model.Id);
+                DBOs.Events.EventTag>("event_tag", enabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
         }
 
-        public static List<Common.Models.Events.EventTag> Search(string text)
+        public static List<Common.Models.Events.EventTag> Search(string text,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             List<Common.Models.Events.EventTag> list = new List<Common.Models.Events.EventTag>();
             List<DBOs.Events.EventTag> dbo = null;
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                dbo = conn.Query<DBOs.Events.EventTag>(
-                    "SELECT * FROM \"event_tag\" WHERE LOWER(\"tag\") LIKE '%' || @Query || '%'",
-                    new { Query = text }).ToList();
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            dbo = conn.Query<DBOs.Events.EventTag>(
+                "SELECT * FROM \"event_tag\" WHERE LOWER(\"tag\") LIKE '%' || @Query || '%'",
+                new { Query = text }).ToList();
 
             dbo.ForEach(x =>
             {
                 Common.Models.Events.EventTag model = Mapper.Map<Common.Models.Events.EventTag>(x);
-                model.TagCategory = Tagging.TagCategory.Get(model.TagCategory.Id);
-                model.Event = Event.Get(model.Event.Id.Value);
+                model.TagCategory = Tagging.TagCategory.Get(model.TagCategory.Id, conn, false);
+                model.Event = Event.Get(model.Event.Id.Value, conn, false);
                 list.Add(model);
             });
+
+            DataHelper.Close(conn, closeConnection);
 
             return list;
         }

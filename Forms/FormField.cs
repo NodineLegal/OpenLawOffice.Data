@@ -30,64 +30,118 @@ namespace OpenLawOffice.Data.Forms
 
     public class FormField
     {
-        public static Common.Models.Forms.FormField Get(int id)
+        public static Common.Models.Forms.FormField Get(
+            int id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Forms.FormField, DBOs.Forms.FormField>(
                 "SELECT * FROM \"form_field\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Forms.FormField> List()
+        public static Common.Models.Forms.FormField Get(
+            Transaction t,
+            int id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static List<Common.Models.Forms.FormField> List(
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Forms.FormField, DBOs.Forms.FormField>(
-                "SELECT * FROM \"form_field\" WHERE \"utc_disabled\" is null");
+                "SELECT * FROM \"form_field\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
         }
 
-        public static Common.Models.Forms.FormField Create(Common.Models.Forms.FormField model, 
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Forms.FormField> List(
+            Transaction t)
+        {
+            return List(t.Connection, false);
+        }
+
+        public static Common.Models.Forms.FormField Create(
+            Common.Models.Forms.FormField model, 
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
             DBOs.Forms.FormField dbo = Mapper.Map<DBOs.Forms.FormField>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"form_field\" (\"title\", \"description\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Title, @Description, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"form_field\" (\"title\", \"description\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Title, @Description, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
                 model.Id = conn.Query<DBOs.Forms.FormField>("SELECT currval(pg_get_serial_sequence('form_field', 'id')) AS \"id\"").Single().Id;
-            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Forms.FormField Edit(Common.Models.Forms.FormField model,
-            Common.Models.Account.Users modifier)
+        public static Common.Models.Forms.FormField Create(
+            Transaction t,
+            Common.Models.Forms.FormField model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Forms.FormField Edit(
+            Common.Models.Forms.FormField model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Forms.FormField dbo = Mapper.Map<DBOs.Forms.FormField>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"form_field\" SET " +
-                    "\"title\"=@Title, \"description\"=@Description, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"form_field\" SET " +
+                "\"title\"=@Title, \"description\"=@Description, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Forms.FormField Disable(Common.Models.Forms.FormField model,
-            Common.Models.Account.Users disabler)
+
+        public static Common.Models.Forms.FormField Edit(
+            Transaction t,
+            Common.Models.Forms.FormField model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        public static Common.Models.Forms.FormField Disable(
+            Common.Models.Forms.FormField model,
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Forms.FormField,
-                DBOs.Forms.FormField>("form_field", disabler.PId.Value, model.Id);
+                DBOs.Forms.FormField>("form_field", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Forms.FormField Disable(
+            Transaction t,
+            Common.Models.Forms.FormField model,
+            Common.Models.Account.Users disabler)
+        {
+            return Disable(model, disabler, t.Connection, false);
         }
     }
 }

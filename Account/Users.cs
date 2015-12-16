@@ -33,24 +33,52 @@ namespace OpenLawOffice.Data.Account
     /// </summary>
     public static class Users
     {
-        public static Common.Models.Account.Users Get(Guid pid)
+        public static Common.Models.Account.Users Get(
+            Guid pid,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Account.Users, DBOs.Account.Users>(
                 "SELECT * FROM \"Users\" WHERE \"pId\"=@PId",
-                new { PId = pid });
+                new { PId = pid }, conn, closeConnection);
         }
 
-        public static Common.Models.Account.Users Get(string username)
+        public static Common.Models.Account.Users Get(
+            Transaction t,
+            Guid pid)
+        {
+            return Get(pid, t.Connection, false);
+        }
+
+        public static Common.Models.Account.Users Get(
+            string username,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Account.Users, DBOs.Account.Users>(
                 "SELECT * FROM \"Users\" WHERE \"Username\"=@Username",
-                new { Username = username });
+                new { Username = username }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Account.Users> List()
+        public static Common.Models.Account.Users Get(
+            Transaction t,
+            string username)
+        {
+            return Get(username, t.Connection, false);
+        }
+
+        public static List<Common.Models.Account.Users> List(
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Account.Users, DBOs.Account.Users>(
-                "SELECT * FROM \"Users\"");
+                "SELECT * FROM \"Users\"", null, conn, closeConnection);
+        }
+
+        public static List<Common.Models.Account.Users> List(
+            Transaction t)
+        {
+            return List(t.Connection, false);
         }
     }
 }

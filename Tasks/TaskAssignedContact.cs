@@ -33,29 +33,64 @@ namespace OpenLawOffice.Data.Tasks
     /// </summary>
     public static class TaskAssignedContact
     {
-        public static Common.Models.Tasks.TaskAssignedContact Get(Guid id)
+        public static Common.Models.Tasks.TaskAssignedContact Get(
+            Guid id,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.TaskAssignedContact, DBOs.Tasks.TaskAssignedContact>(
                 "SELECT * FROM \"task_assigned_contact\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.TaskAssignedContact Get(long taskId, int contactId)
+        public static Common.Models.Tasks.TaskAssignedContact Get(
+            Transaction t,
+            Guid id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskAssignedContact Get(
+            long taskId, 
+            int contactId,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.TaskAssignedContact, DBOs.Tasks.TaskAssignedContact>(
                 "SELECT * FROM \"task_assigned_contact\" WHERE \"task_id\"=@TaskId AND \"contact_id\"=@ContactId AND \"utc_disabled\" is null",
-                new { TaskId = taskId, ContactId = contactId });
+                new { TaskId = taskId, ContactId = contactId }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Tasks.TaskAssignedContact> ListForTask(long taskId)
+        public static Common.Models.Tasks.TaskAssignedContact Get(
+            Transaction t,
+            long taskId,
+            int contactId)
+        {
+            return Get(taskId, contactId, t.Connection, false);
+        }
+
+        public static List<Common.Models.Tasks.TaskAssignedContact> ListForTask(
+            long taskId,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Tasks.TaskAssignedContact, DBOs.Tasks.TaskAssignedContact>(
                 "SELECT * FROM \"task_assigned_contact\" WHERE \"task_id\"=@TaskId AND \"utc_disabled\" is null",
-                new { TaskId = taskId });
+                new { TaskId = taskId }, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.TaskAssignedContact Create(Common.Models.Tasks.TaskAssignedContact model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Tasks.TaskAssignedContact> ListForTask(
+            Transaction t,
+            long taskId)
+        {
+            return ListForTask(taskId, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskAssignedContact Create(
+            Common.Models.Tasks.TaskAssignedContact model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.Created = model.Modified = DateTime.UtcNow;
@@ -63,47 +98,84 @@ namespace OpenLawOffice.Data.Tasks
 
             DBOs.Tasks.TaskAssignedContact dbo = Mapper.Map<DBOs.Tasks.TaskAssignedContact>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"task_assigned_contact\" (\"id\", \"task_id\", \"contact_id\", \"assignment_type\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Id, @TaskId, @ContactId, @AssignmentType, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"task_assigned_contact\" (\"id\", \"task_id\", \"contact_id\", \"assignment_type\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Id, @TaskId, @ContactId, @AssignmentType, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
+                model.Id = conn.Query<DBOs.Events.EventAssignedContact>("SELECT currval(pg_get_serial_sequence('task_assigned_contact', 'id')) AS \"id\"").Single().Id;
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Tasks.TaskAssignedContact Edit(Common.Models.Tasks.TaskAssignedContact model,
-            Common.Models.Account.Users modifier)
+        public static Common.Models.Tasks.TaskAssignedContact Create(
+            Transaction t,
+            Common.Models.Tasks.TaskAssignedContact model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskAssignedContact Edit(
+            Common.Models.Tasks.TaskAssignedContact model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Tasks.TaskAssignedContact dbo = Mapper.Map<DBOs.Tasks.TaskAssignedContact>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"task_assigned_contact\" SET " +
-                    "\"task_id\"=@TaskId, \"contact_id\"=@ContactId, \"assignment_type\"=@AssignmentType, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"task_assigned_contact\" SET " +
+                "\"task_id\"=@TaskId, \"contact_id\"=@ContactId, \"assignment_type\"=@AssignmentType, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Tasks.TaskAssignedContact Disable(Common.Models.Tasks.TaskAssignedContact model,
-            Common.Models.Account.Users disabler)
+        public static Common.Models.Tasks.TaskAssignedContact Edit(
+            Transaction t,
+            Common.Models.Tasks.TaskAssignedContact model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskAssignedContact Disable(
+            Common.Models.Tasks.TaskAssignedContact model,
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Tasks.TaskAssignedContact,
-                DBOs.Tasks.TaskAssignedContact>("task_assigned_contact", disabler.PId.Value, model.Id);
+                DBOs.Tasks.TaskAssignedContact>("task_assigned_contact", disabler.PId.Value, 
+                model.Id, conn, closeConnection);
 
             return model;
         }
+        
+        public static Common.Models.Tasks.TaskAssignedContact Disable(
+            Transaction t,
+            Common.Models.Tasks.TaskAssignedContact model,
+            Common.Models.Account.Users disabler)
+        {
+            return Disable(model, disabler, t.Connection, false);
+        }
 
-        public static Common.Models.Tasks.TaskAssignedContact Enable(Common.Models.Tasks.TaskAssignedContact model,
-            Common.Models.Account.Users enabler)
+        public static Common.Models.Tasks.TaskAssignedContact Enable(
+            Common.Models.Tasks.TaskAssignedContact model,
+            Common.Models.Account.Users enabler,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             model.ModifiedBy = enabler;
             model.Modified = DateTime.UtcNow;
@@ -111,9 +183,18 @@ namespace OpenLawOffice.Data.Tasks
             model.Disabled = null;
 
             DataHelper.Enable<Common.Models.Tasks.TaskAssignedContact,
-                DBOs.Tasks.TaskAssignedContact>("task_assigned_contact", enabler.PId.Value, model.Id);
+                DBOs.Tasks.TaskAssignedContact>("task_assigned_contact", enabler.PId.Value, 
+                model.Id, conn, closeConnection);
 
             return model;
+        }
+        
+        public static Common.Models.Tasks.TaskAssignedContact Enable(
+            Transaction t,
+            Common.Models.Tasks.TaskAssignedContact model,
+            Common.Models.Account.Users enabler)
+        {
+            return Enable(model, enabler, t.Connection, false);
         }
     }
 }

@@ -32,29 +32,64 @@ namespace OpenLawOffice.Data.Tasks
     /// </summary>
     public static class TaskMatter
     {
-        public static Common.Models.Tasks.TaskMatter Get(Guid id)
+        public static Common.Models.Tasks.TaskMatter Get(
+            Guid id,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.TaskMatter, DBOs.Tasks.TaskMatter>(
                 "SELECT * FROM \"task_matter\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.TaskMatter Get(long taskId, Guid matterId)
+        public static Common.Models.Tasks.TaskMatter Get(
+            Transaction t,
+            Guid id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskMatter Get(
+            long taskId, 
+            Guid matterId,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.TaskMatter, DBOs.Tasks.TaskMatter>(
                 "SELECT * FROM \"task_matter\" WHERE \"task_id\"=@TaskId AND \"matter_id\"=@MatterId AND \"utc_disabled\" is null",
-                new { TaskId = taskId, MatterId = matterId });
+                new { TaskId = taskId, MatterId = matterId }, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.TaskMatter GetFor(long taskId)
+        public static Common.Models.Tasks.TaskMatter Get(
+            Transaction t,
+            long taskId,
+            Guid matterId)
+        {
+            return Get(taskId, matterId, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskMatter GetFor(
+            long taskId,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.TaskMatter, DBOs.Tasks.TaskMatter>(
                 "SELECT * FROM \"task_matter\" WHERE \"task_id\"=@TaskId AND \"utc_disabled\" is null",
-                new { TaskId = taskId });
+                new { TaskId = taskId }, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.TaskMatter Create(Common.Models.Tasks.TaskMatter model,
-            Common.Models.Account.Users creator)
+        public static Common.Models.Tasks.TaskMatter GetFor(
+            Transaction t,
+            long taskId)
+        {
+            return GetFor(taskId, t.Connection, false);
+        }
+
+        public static Common.Models.Tasks.TaskMatter Create(
+            Common.Models.Tasks.TaskMatter model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null,
+            bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.Created = model.Modified = DateTime.UtcNow;
@@ -62,14 +97,22 @@ namespace OpenLawOffice.Data.Tasks
 
             DBOs.Tasks.TaskMatter dbo = Mapper.Map<DBOs.Tasks.TaskMatter>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"task_matter\" (\"id\", \"task_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Id, @TaskId, @MatterId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"task_matter\" (\"id\", \"task_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Id, @TaskId, @MatterId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
+                model.Id = conn.Query<DBOs.Tasks.TaskMatter>("SELECT currval(pg_get_serial_sequence('task_matter', 'id')) AS \"id\"").Single().Id;
 
             return model;
+        }
+
+        public static Common.Models.Tasks.TaskMatter Create(
+            Transaction t,
+            Common.Models.Tasks.TaskMatter model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
         }
     }
 }

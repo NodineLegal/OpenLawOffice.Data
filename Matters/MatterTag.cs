@@ -33,93 +33,152 @@ namespace OpenLawOffice.Data.Matters
     /// </summary>
     public static class MatterTag
     {
-        public static Common.Models.Matters.MatterTag Get(Guid id)
+        public static Common.Models.Matters.MatterTag Get(
+            Guid id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             Common.Models.Matters.MatterTag model =
                 DataHelper.Get<Common.Models.Matters.MatterTag, DBOs.Matters.MatterTag>(
                 "SELECT * FROM \"matter_tag\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, false);
 
             if (model == null) return null;
 
             if (model.TagCategory != null)
-                model.TagCategory = Tagging.TagCategory.Get(model.TagCategory.Id);
+                model.TagCategory = Tagging.TagCategory.Get(model.TagCategory.Id, conn, false);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static List<Common.Models.Matters.MatterTag> List()
+        public static Common.Models.Matters.MatterTag Get(
+            Transaction t,
+            Guid id)
         {
-            return DataHelper.List<Common.Models.Matters.MatterTag, DBOs.Matters.MatterTag>(
-                "SELECT * FROM \"matter_tag\" WHERE \"utc_disabled\" is null");
+            return Get(id, t.Connection, false);
         }
 
-        public static List<Common.Models.Matters.MatterTag> ListForMatter(Guid matterId)
+        public static List<Common.Models.Matters.MatterTag> List(
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            return DataHelper.List<Common.Models.Matters.MatterTag, DBOs.Matters.MatterTag>(
+                "SELECT * FROM \"matter_tag\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
+        }
+
+        public static List<Common.Models.Matters.MatterTag> List(
+            Transaction t)
+        {
+            return List(t.Connection, false);
+        }
+
+        public static List<Common.Models.Matters.MatterTag> ListForMatter(
+            Guid matterId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             List<Common.Models.Matters.MatterTag> list =
                 DataHelper.List<Common.Models.Matters.MatterTag, DBOs.Matters.MatterTag>(
                 "SELECT * FROM \"matter_tag\" WHERE \"matter_id\"=@MatterId AND \"utc_disabled\" is null",
-                new { MatterId = matterId });
+                new { MatterId = matterId }, conn, closeConnection);
 
             list.ForEach(x =>
             {
-                x.TagCategory = Tagging.TagCategory.Get(x.TagCategory.Id);
+                x.TagCategory = Tagging.TagCategory.Get(x.TagCategory.Id, conn, false);
             });
+
+            DataHelper.Close(conn, closeConnection);
 
             return list;
         }
 
-        public static Common.Models.Matters.MatterTag Create(Common.Models.Matters.MatterTag model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Matters.MatterTag> ListForMatter(
+            Transaction t,
+            Guid matterId)
+        {
+            return ListForMatter(matterId, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.MatterTag Create(
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
 
-            Common.Models.Tagging.TagCategory existingTagCat = Tagging.TagCategory.Get(model.TagCategory.Name);
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            Common.Models.Tagging.TagCategory existingTagCat = Tagging.TagCategory.Get(model.TagCategory.Name, conn, false);
 
             if (existingTagCat == null)
             {
-                existingTagCat = Tagging.TagCategory.Create(model.TagCategory, creator);
+                existingTagCat = Tagging.TagCategory.Create(model.TagCategory, creator, conn, false);
             }
 
             model.TagCategory = existingTagCat;
             DBOs.Matters.MatterTag dbo = Mapper.Map<DBOs.Matters.MatterTag>(model);
+            
+            if (conn.Execute("INSERT INTO \"matter_tag\" (\"id\", \"matter_id\", \"tag_category_id\", \"tag\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Id, @MatterId, @TagCategoryId, @Tag, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
+                model.Id = conn.Query<DBOs.Matters.MatterTag>("SELECT currval(pg_get_serial_sequence('matter_tag', 'id')) AS \"id\"").Single().Id;
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"matter_tag\" (\"id\", \"matter_id\", \"tag_category_id\", \"tag\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Id, @MatterId, @TagCategoryId, @Tag, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
-            }
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.MatterTag Edit(Common.Models.Matters.MatterTag model,
-            Common.Models.Account.Users modifier)
+        public static Common.Models.Matters.MatterTag Create(
+            Transaction t,
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.MatterTag Edit(
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Matters.MatterTag dbo = Mapper.Map<DBOs.Matters.MatterTag>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"matter_tag\" SET " +
-                    "\"matter_id\"=@MatterId, \"tag\"=@Tag, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
 
-            model.TagCategory = UpdateTagCategory(model, modifier);
+            conn.Execute("UPDATE \"matter_tag\" SET " +
+                "\"matter_id\"=@MatterId, \"tag\"=@Tag, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            model.TagCategory = UpdateTagCategory(model, modifier, conn, false);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        private static Common.Models.Tagging.TagCategory UpdateTagCategory(
+        public static Common.Models.Matters.MatterTag Edit(
+            Transaction t,
             Common.Models.Matters.MatterTag model,
             Common.Models.Account.Users modifier)
         {
-            Common.Models.Matters.MatterTag currentTag = Get(model.Id.Value);
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        private static Common.Models.Tagging.TagCategory UpdateTagCategory(
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
+        {
+            Common.Models.Matters.MatterTag currentTag = Get(model.Id.Value, conn, false);
 
             if (currentTag.TagCategory != null)
             {
@@ -129,7 +188,7 @@ namespace OpenLawOffice.Data.Matters
                     if (currentTag.Tag != model.Tag)
                     {
                         // Update - change tagcat
-                        model.TagCategory = AddOrChangeTagCategory(model, modifier);
+                        model.TagCategory = AddOrChangeTagCategory(model, modifier, conn, false);
                     }
                 }
                 else
@@ -138,11 +197,8 @@ namespace OpenLawOffice.Data.Matters
                     // Update - drop tagcat
                     currentTag.TagCategory = null;
 
-                    using (IDbConnection conn = Database.Instance.GetConnection())
-                    {
-                        conn.Execute("UPDATE \"matter_tag\" SET \"tag_category_id\"=null WHERE \"id\"=@Id",
-                            new { Id = model.Id.Value });
-                    }
+                    conn.Execute("UPDATE \"matter_tag\" SET \"tag_category_id\"=null WHERE \"id\"=@Id",
+                        new { Id = model.Id.Value });
                 }
             }
             else
@@ -150,25 +206,37 @@ namespace OpenLawOffice.Data.Matters
                 if (model.TagCategory != null && !string.IsNullOrEmpty(model.TagCategory.Name))
                 { // If current !has tag & new has tag
                     // Update - add tagcat
-                    model.TagCategory = AddOrChangeTagCategory(model, modifier);
+                    model.TagCategory = AddOrChangeTagCategory(model, modifier, conn, false);
                 }
 
                 // If current !has tag & new !has tag - do nothing
             }
 
+            DataHelper.Close(conn, closeConnection);
+
             return model.TagCategory;
+        }
+
+        private static Common.Models.Tagging.TagCategory UpdateTagCategory(
+            Transaction t,
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users modifier)
+        {
+            return UpdateTagCategory(model, modifier, t.Connection, false);
         }
 
         private static Common.Models.Tagging.TagCategory AddOrChangeTagCategory(
             Common.Models.Matters.MatterTag tag,
-            Common.Models.Account.Users modifier)
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             Common.Models.Tagging.TagCategory newTagCat = null;
 
             // Check for existing name
             if (tag.TagCategory != null && !string.IsNullOrEmpty(tag.TagCategory.Name))
             {
-                newTagCat = Tagging.TagCategory.Get(tag.TagCategory.Name);
+                newTagCat = Tagging.TagCategory.Get(tag.TagCategory.Name, conn, false);
             }
 
             // Either need to use existing or create a new tag category
@@ -180,39 +248,62 @@ namespace OpenLawOffice.Data.Matters
                 // If new tagcat was disabled, it needs enabled
                 if (newTagCat.Disabled.HasValue)
                 {
-                    tag.TagCategory = Tagging.TagCategory.Enable(tag.TagCategory, modifier);
+                    tag.TagCategory = Tagging.TagCategory.Enable(tag.TagCategory, modifier, conn, false);
                 }
             }
             else
             {
                 // Add one
-                tag.TagCategory = Tagging.TagCategory.Create(tag.TagCategory, modifier);
+                tag.TagCategory = Tagging.TagCategory.Create(tag.TagCategory, modifier, conn, false);
             }
 
+            conn = DataHelper.OpenIfNeeded(conn);
+
             // Update MatterTag's TagCategoryId
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"matter_tag\" SET \"tag_category_id\"=@TagCategoryId WHERE \"id\"=@Id",
-                    new { Id = tag.Id.Value, TagCategoryId = tag.TagCategory.Id });
-            }
+            conn.Execute("UPDATE \"matter_tag\" SET \"tag_category_id\"=@TagCategoryId WHERE \"id\"=@Id",
+                new { Id = tag.Id.Value, TagCategoryId = tag.TagCategory.Id });
+
+            DataHelper.Close(conn, closeConnection);
 
             return tag.TagCategory;
         }
 
-        public static Common.Models.Matters.MatterTag Disable(Common.Models.Matters.MatterTag model,
-            Common.Models.Account.Users disabler)
+        private static Common.Models.Tagging.TagCategory AddOrChangeTagCategory(
+            Transaction t,
+            Common.Models.Matters.MatterTag tag,
+            Common.Models.Account.Users modifier)
+        {
+            return AddOrChangeTagCategory(tag, modifier, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.MatterTag Disable(
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Matters.MatterTag,
-                DBOs.Matters.MatterTag>("matter_tag", disabler.PId.Value, model.Id);
+                DBOs.Matters.MatterTag>("matter_tag", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.MatterTag Enable(Common.Models.Matters.MatterTag model,
-            Common.Models.Account.Users enabler)
+        public static Common.Models.Matters.MatterTag Disable(
+            Transaction t,
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users disabler)
+        {
+            return Disable(model, disabler, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.MatterTag Enable(
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users enabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = enabler;
             model.Modified = DateTime.UtcNow;
@@ -220,32 +311,51 @@ namespace OpenLawOffice.Data.Matters
             model.Disabled = null;
 
             DataHelper.Enable<Common.Models.Matters.MatterTag,
-                DBOs.Matters.MatterTag>("matter_tag", enabler.PId.Value, model.Id);
+                DBOs.Matters.MatterTag>("matter_tag", enabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
         }
 
-        public static List<Common.Models.Matters.MatterTag> Search(string text)
+        public static Common.Models.Matters.MatterTag Enable(
+            Transaction t,
+            Common.Models.Matters.MatterTag model,
+            Common.Models.Account.Users enabler)
+        {
+            return Enable(model, enabler, t.Connection, false);
+        }
+
+        public static List<Common.Models.Matters.MatterTag> Search(
+            string text,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             List<Common.Models.Matters.MatterTag> list = new List<Common.Models.Matters.MatterTag>();
             List<DBOs.Matters.MatterTag> dbo = null;
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                dbo = conn.Query<DBOs.Matters.MatterTag>(
-                    "SELECT * FROM \"matter_tag\" WHERE LOWER(\"tag\") LIKE '%' || @Query || '%'",
-                    new { Query = text }).ToList();
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            dbo = conn.Query<DBOs.Matters.MatterTag>(
+                "SELECT * FROM \"matter_tag\" WHERE LOWER(\"tag\") LIKE '%' || @Query || '%'",
+                new { Query = text }).ToList();
 
             dbo.ForEach(x =>
             {
                 Common.Models.Matters.MatterTag mt = Mapper.Map<Common.Models.Matters.MatterTag>(x);
-                mt.TagCategory = Tagging.TagCategory.Get(mt.TagCategory.Id);
-                mt.Matter = Matter.Get(mt.Matter.Id.Value);
+                mt.TagCategory = Tagging.TagCategory.Get(mt.TagCategory.Id, conn, closeConnection);
+                mt.Matter = Matter.Get(mt.Matter.Id.Value, conn, closeConnection);
                 list.Add(mt);
             });
 
+            DataHelper.Close(conn, closeConnection);
+
             return list;
+        }
+
+        public static List<Common.Models.Matters.MatterTag> Search(
+            Transaction t,
+            string text)
+        {
+            return Search(text, t.Connection, false);
         }
     }
 }

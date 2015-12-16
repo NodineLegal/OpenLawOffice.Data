@@ -30,71 +30,134 @@ namespace OpenLawOffice.Data.Forms
 
     public class Form
     {
-        public static Common.Models.Forms.Form Get(int id)
+        public static Common.Models.Forms.Form Get(
+            int id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Forms.Form, DBOs.Forms.Form>(
                 "SELECT * FROM \"form\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Forms.Form> List()
+        public static Common.Models.Forms.Form Get(
+            Transaction t,
+            int id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static List<Common.Models.Forms.Form> List(
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Forms.Form, DBOs.Forms.Form>(
-                "SELECT * FROM \"form\" WHERE \"utc_disabled\" is null");
+                "SELECT * FROM \"form\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
         }
 
-        public static List<Common.Models.Forms.Form> ListForMatter(Guid matterId)
+        public static List<Common.Models.Forms.Form> List(
+            Transaction t)
+        {
+            return List(t.Connection, false);
+        }
+
+        public static List<Common.Models.Forms.Form> ListForMatter(
+            Guid matterId,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Forms.Form, DBOs.Forms.Form>(
                 "SELECT * FROM \"form\" WHERE \"matter_type_id\"=(SELECT \"matter_type_id\" FROM \"matter\" WHERE \"id\"=@MatterId) AND \"utc_disabled\" is null",
-                new { MatterId = matterId });
+                new { MatterId = matterId }, conn, closeConnection);
         }
 
-        public static Common.Models.Forms.Form Create(Common.Models.Forms.Form model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Forms.Form> ListForMatter(
+            Transaction t,
+            Guid matterId)
+        {
+            return ListForMatter(matterId, t.Connection, false);
+        }
+
+        public static Common.Models.Forms.Form Create(
+            Common.Models.Forms.Form model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
             DBOs.Forms.Form dbo = Mapper.Map<DBOs.Forms.Form>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"form\" (\"title\", \"matter_type_id\", \"path\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Title, @MatterTypeId, @Path, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"form\" (\"title\", \"matter_type_id\", \"path\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Title, @MatterTypeId, @Path, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
                 model.Id = conn.Query<DBOs.Forms.Form>("SELECT currval(pg_get_serial_sequence('form', 'id')) AS \"id\"").Single().Id;
-            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Forms.Form Edit(Common.Models.Forms.Form model,
-            Common.Models.Account.Users modifier)
+        public static Common.Models.Forms.Form Create(
+            Transaction t,
+            Common.Models.Forms.Form model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Forms.Form Edit(
+            Common.Models.Forms.Form model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Forms.Form dbo = Mapper.Map<DBOs.Forms.Form>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"form\" SET " +
-                    "\"title\"=@Title, \"matter_type_id\"=@MatterTypeId, \"path\"=@Path, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"form\" SET " +
+                "\"title\"=@Title, \"matter_type_id\"=@MatterTypeId, \"path\"=@Path, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Forms.Form Disable(Common.Models.Forms.Form model,
-            Common.Models.Account.Users disabler)
+        public static Common.Models.Forms.Form Edit(
+            Transaction t,
+            Common.Models.Forms.Form model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        public static Common.Models.Forms.Form Disable(
+            Common.Models.Forms.Form model,
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Forms.Form,
-                DBOs.Forms.Form>("form", disabler.PId.Value, model.Id);
+                DBOs.Forms.Form>("form", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Forms.Form Disable(
+            Transaction t,
+            Common.Models.Forms.Form model,
+            Common.Models.Account.Users disabler)
+        {
+            return Disable(model, disabler, t.Connection, false);
         }
     }
 }

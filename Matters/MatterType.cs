@@ -30,64 +30,117 @@ namespace OpenLawOffice.Data.Matters
 
     public class MatterType
     {
-        public static Common.Models.Matters.MatterType Get(int id)
+        public static Common.Models.Matters.MatterType Get(
+            int id,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Matters.MatterType, DBOs.Matters.MatterType>(
                 "SELECT * FROM \"matter_type\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
-                new { id = id });
+                new { id = id }, conn, closeConnection);
         }
 
-        public static List<Common.Models.Matters.MatterType> List()
+        public static Common.Models.Matters.MatterType Get(
+            Transaction t,
+            int id)
+        {
+            return Get(id, t.Connection, false);
+        }
+
+        public static List<Common.Models.Matters.MatterType> List(
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Matters.MatterType, DBOs.Matters.MatterType>(
-                "SELECT * FROM \"matter_type\" WHERE \"utc_disabled\" is null");
+                "SELECT * FROM \"matter_type\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
         }
 
-        public static Common.Models.Matters.MatterType Create(Common.Models.Matters.MatterType model,
-            Common.Models.Account.Users creator)
+        public static List<Common.Models.Matters.MatterType> List(
+            Transaction t)
+        {
+            return List(t.Connection, false);
+        }
+
+        public static Common.Models.Matters.MatterType Create(
+            Common.Models.Matters.MatterType model,
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
             DBOs.Matters.MatterType dbo = Mapper.Map<DBOs.Matters.MatterType>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("INSERT INTO \"matter_type\" (\"title\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                    "VALUES (@Title, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo);
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            if (conn.Execute("INSERT INTO \"matter_type\" (\"title\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Title, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                dbo) > 0)
                 model.Id = conn.Query<DBOs.Matters.MatterType>("SELECT currval(pg_get_serial_sequence('matter_type', 'id')) AS \"id\"").Single().Id;
-            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.MatterType Edit(Common.Models.Matters.MatterType model,
-            Common.Models.Account.Users modifier)
+        public static Common.Models.Matters.MatterType Create(
+            Transaction t,
+            Common.Models.Matters.MatterType model,
+            Common.Models.Account.Users creator)
+        {
+            return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.MatterType Edit(
+            Common.Models.Matters.MatterType model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
             DBOs.Matters.MatterType dbo = Mapper.Map<DBOs.Matters.MatterType>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                conn.Execute("UPDATE \"matter_type\" SET " +
-                    "\"title\"=@Title, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                    "WHERE \"id\"=@Id", dbo);
-            }
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"matter_type\" SET " +
+                "\"title\"=@Title, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.MatterType Disable(Common.Models.Matters.MatterType model,
-            Common.Models.Account.Users disabler)
+        public static Common.Models.Matters.MatterType Edit(
+            Transaction t,
+            Common.Models.Matters.MatterType model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        public static Common.Models.Matters.MatterType Disable(
+            Common.Models.Matters.MatterType model,
+            Common.Models.Account.Users disabler,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
             DataHelper.Disable<Common.Models.Matters.MatterType,
-                DBOs.Matters.MatterType>("matter_type", disabler.PId.Value, model.Id);
+                DBOs.Matters.MatterType>("matter_type", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
+        }
+
+        public static Common.Models.Matters.MatterType Disable(
+            Transaction t,
+            Common.Models.Matters.MatterType model,
+            Common.Models.Account.Users disabler)
+        {
+            return Disable(model, disabler, t.Connection, false);
         }
     }
 }

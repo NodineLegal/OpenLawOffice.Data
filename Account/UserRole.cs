@@ -31,13 +31,23 @@ namespace OpenLawOffice.Data.Account
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    public class UserRole
+    public static class UserRole
     {
-        public static List<Common.Models.Account.UserRole> ListForUser(string username)
+        public static List<Common.Models.Account.UserRole> ListForUser(
+            string username,
+            IDbConnection conn = null, 
+            bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Account.UserRole, DBOs.Account.UserRole>(
                 "SELECT * FROM \"Roles\" FULL OUTER JOIN \"UsersInRoles\" ON \"Roles\".\"Rolename\"=\"UsersInRoles\".\"Rolename\"",
-                new { Username = username });
+                new { Username = username }, conn, closeConnection);
+        }
+
+        public static List<Common.Models.Account.UserRole> ListForUser(
+            Transaction t,
+            string username)
+        {
+            return ListForUser(username, t.Connection, false);
         }
     }
 }

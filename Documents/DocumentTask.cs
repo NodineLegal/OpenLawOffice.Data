@@ -23,6 +23,7 @@ namespace OpenLawOffice.Data.Documents
 {
     using System;
     using System.Data;
+    using System.Linq;
     using AutoMapper;
     using Dapper;
 
@@ -31,69 +32,77 @@ namespace OpenLawOffice.Data.Documents
     /// </summary>
     public static class DocumentTask
     {
-        public static Common.Models.Documents.DocumentTask Get(Guid id)
+        public static Common.Models.Documents.DocumentTask Get(Guid id,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Documents.DocumentTask, DBOs.Documents.DocumentTask>(
                 "SELECT * FROM \"document_task\" WHERE \"id\"=@Id AND \"utc_disabled\" is null",
-                new { Id = id });
+                new { Id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Documents.DocumentTask Get(long taskId, Guid documentId)
+        public static Common.Models.Documents.DocumentTask Get(long taskId, Guid documentId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Documents.DocumentTask, DBOs.Documents.DocumentTask>(
                 "SELECT * FROM \"document_task\" WHERE \"task_id\"=@TaskId AND \"document_id\"=@DocumentId AND \"utc_disabled\" is null",
-                new { TaskId = taskId, DocumentId = documentId });
+                new { TaskId = taskId, DocumentId = documentId }, conn, closeConnection);
         }
 
-        public static Common.Models.Documents.DocumentTask GetFor(Guid documentId)
+        public static Common.Models.Documents.DocumentTask GetFor(Guid documentId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Documents.DocumentTask, DBOs.Documents.DocumentTask>(
                 "SELECT * FROM \"document_task\" WHERE \"document_id\"=@DocumentId AND \"utc_disabled\" is null",
-                new { DocumentId = documentId });
+                new { DocumentId = documentId }, conn, closeConnection);
         }
 
-        public static Common.Models.Documents.DocumentTask GetIgnoringDisable(Guid taskId, Guid documentId)
+        public static Common.Models.Documents.DocumentTask GetIgnoringDisable(Guid taskId, Guid documentId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Documents.DocumentTask, DBOs.Documents.DocumentTask>(
                 "SELECT * FROM \"document_task\" WHERE \"task_id\"=@MatterId AND \"document_id\"=@DocumentId",
-                new { TaskId = taskId, DocumentId = documentId });
+                new { TaskId = taskId, DocumentId = documentId }, conn, closeConnection);
         }
 
-        public static Common.Models.Tasks.Task GetRelatedMatter(Guid documentId)
+        public static Common.Models.Tasks.Task GetRelatedMatter(Guid documentId,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Tasks.Task, DBOs.Tasks.Task>(
                 "SELECT \"task\".* FROM \"document_task\" JOIN \"task\" ON \"document_task\".\"task_id\"=\"task\".\"id\" " +
                 "WHERE \"document_task\".\"document_id\"=@DocumentId " +
                 "AND \"document_task\".\"utc_disabled\" is null " +
                 "AND \"task\".\"utc_disabled\" is null ",
-                new { DocumentId = documentId });
+                new { DocumentId = documentId }, conn, closeConnection);
         }
 
         public static Common.Models.Documents.DocumentTask Create(Common.Models.Documents.DocumentTask model,
-            Common.Models.Account.Users creator)
+            Common.Models.Account.Users creator,
+            IDbConnection conn = null, bool closeConnection = true)
         {
             model.Created = model.Modified = DateTime.UtcNow;
             model.CreatedBy = model.ModifiedBy = creator;
             DBOs.Documents.DocumentTask dbo = Mapper.Map<DBOs.Documents.DocumentTask>(model);
 
-            using (IDbConnection conn = Database.Instance.GetConnection())
-            {
-                Common.Models.Documents.DocumentTask currentModel = Get(model.Task.Id.Value, model.Document.Id.Value);
+            conn = DataHelper.OpenIfNeeded(conn);
 
-                if (currentModel != null)
-                { // Update
-                    conn.Execute("UPDATE \"document_task\" SET \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
-                        "\"utc_disabled\"=null, \"disabled_by_user_pid\"=null WHERE \"id\"=@Id", dbo);
-                    model.Created = currentModel.Created;
-                    model.CreatedBy = currentModel.CreatedBy;
-                }
-                else
-                { // Create
-                    conn.Execute("INSERT INTO \"document_task\" (\"id\", \"document_id\", \"task_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                        "VALUES (@Id, @DocumentId, @TaskId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                        dbo);
-                }
+            Common.Models.Documents.DocumentTask currentModel = Get(model.Task.Id.Value, model.Document.Id.Value, conn, false);
+
+            if (currentModel != null)
+            { // Update
+                conn.Execute("UPDATE \"document_task\" SET \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                    "\"utc_disabled\"=null, \"disabled_by_user_pid\"=null WHERE \"id\"=@Id", dbo);
+                model.Created = currentModel.Created;
+                model.CreatedBy = currentModel.CreatedBy;
             }
+            else
+            { // Create
+                if (conn.Execute("INSERT INTO \"document_task\" (\"id\", \"document_id\", \"task_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                    "VALUES (@Id, @DocumentId, @TaskId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+                    dbo) > 0)
+                    model.Id = conn.Query<DBOs.Documents.DocumentTask>("SELECT currval(pg_get_serial_sequence('document_task', 'id')) AS \"id\"").Single().Id;
+            }
+
+            DataHelper.Close(conn, closeConnection);
 
             return model;
         }
