@@ -33,43 +33,34 @@ namespace OpenLawOffice.Data.Billing
             List<Common.Models.Billing.InvoiceFee> invoiceFeeList,
             List<Common.Models.Billing.InvoiceTime> invoiceTimeList,
             Common.Models.Account.Users currentUser,
-            IDbConnection conn = null, bool closeConnection = true)
+            Transaction trans)
         {
             decimal subtotal = 0;
-            IDbTransaction trans;
 
-            conn = DataHelper.OpenIfNeeded(conn);
-
-            trans = conn.BeginTransaction();
-
-            invoice = Data.Billing.Invoice.Create(invoice, currentUser, conn, false);
+            invoice = Data.Billing.Invoice.Create(trans, invoice, currentUser);
 
             invoiceExpenseList.ForEach(invoiceExpense =>
             {
                 subtotal += invoiceExpense.Amount;
-                Data.Billing.InvoiceExpense.Create(invoiceExpense, currentUser, conn, false);
+                Data.Billing.InvoiceExpense.Create(trans, invoiceExpense, currentUser);
             });
 
             invoiceFeeList.ForEach(invoiceFee =>
             {
                 subtotal += invoiceFee.Amount;
-                Data.Billing.InvoiceFee.Create(invoiceFee, currentUser, conn, false);
+                Data.Billing.InvoiceFee.Create(trans, invoiceFee, currentUser);
             });
 
             invoiceTimeList.ForEach(invoiceTime =>
             {
                 subtotal += ((decimal)invoiceTime.Duration.TotalHours * invoiceTime.PricePerHour);
-                Data.Billing.InvoiceTime.Create(invoiceTime, currentUser, conn, false);
+                Data.Billing.InvoiceTime.Create(trans, invoiceTime, currentUser);
             });
 
             invoice.Subtotal = subtotal;
             invoice.Total = invoice.Subtotal + invoice.TaxAmount;
 
-            Data.Billing.Invoice.Edit(invoice, currentUser, conn, false);
-
-            trans.Commit();
-
-            DataHelper.Close(conn, closeConnection);
+            Data.Billing.Invoice.Edit(trans, invoice, currentUser);
 
             return invoice;
         }
@@ -81,48 +72,39 @@ namespace OpenLawOffice.Data.Billing
             List<Common.Models.Billing.InvoiceFee> invoiceFeeList,
             List<Common.Models.Billing.InvoiceTime> invoiceTimeList,
             Common.Models.Account.Users currentUser,
-            IDbConnection conn = null, bool closeConnection = true)
+            Transaction trans)
         {
             decimal subtotal = 0;
-            IDbTransaction trans;
 
-            conn = DataHelper.OpenIfNeeded(conn);
-
-            trans = conn.BeginTransaction();
-
-            invoice = Data.Billing.Invoice.Create(invoice, currentUser, conn, false);
+            invoice = Data.Billing.Invoice.Create(trans, invoice, currentUser);
 
             invoiceExpenseList.ForEach(invoiceExpense =>
             {
                 subtotal += invoiceExpense.Amount;
-                Data.Billing.InvoiceExpense.Create(invoiceExpense, currentUser, conn, false);
+                Data.Billing.InvoiceExpense.Create(trans, invoiceExpense, currentUser);
             });
 
             invoiceFeeList.ForEach(invoiceFee =>
             {
                 subtotal += invoiceFee.Amount;
-                Data.Billing.InvoiceFee.Create(invoiceFee, currentUser, conn, false);
+                Data.Billing.InvoiceFee.Create(trans, invoiceFee, currentUser);
             });
 
             invoiceTimeList.ForEach(invoiceTime =>
             {
                 subtotal += ((decimal)invoiceTime.Duration.TotalHours * invoiceTime.PricePerHour);
-                Data.Billing.InvoiceTime.Create(invoiceTime, currentUser, conn, false);
+                Data.Billing.InvoiceTime.Create(trans, invoiceTime, currentUser);
             });
 
             invoice.Subtotal = subtotal + billingGroup.Amount;
             invoice.Total = invoice.Subtotal + invoice.TaxAmount;
 
-            Data.Billing.Invoice.Edit(invoice, currentUser, conn, false);
+            Data.Billing.Invoice.Edit(trans, invoice, currentUser);
 
             billingGroup.LastRun = DateTime.Now;
             billingGroup.NextRun = billingGroup.NextRun;
-            Data.Billing.BillingGroup.Edit(billingGroup, currentUser, conn, false);
-
-            trans.Commit();
-
-            DataHelper.Close(conn, closeConnection);
-
+            Data.Billing.BillingGroup.Edit(trans, billingGroup, currentUser);
+            
             return invoice;
         }
     }

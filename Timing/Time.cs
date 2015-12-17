@@ -428,10 +428,9 @@ namespace OpenLawOffice.Data.Timing
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"time\" (\"id\", \"start\", \"stop\", \"worker_contact_id\", \"details\", \"billable\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+            conn.Execute("INSERT INTO \"time\" (\"id\", \"start\", \"stop\", \"worker_contact_id\", \"details\", \"billable\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Id, @Start, @Stop, @WorkerContactId, @Details, @Billable, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Timing.Time>("SELECT currval(pg_get_serial_sequence('time', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             DataHelper.Close(conn, closeConnection);
 

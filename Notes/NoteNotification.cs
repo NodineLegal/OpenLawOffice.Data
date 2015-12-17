@@ -130,10 +130,9 @@ namespace OpenLawOffice.Data.Notes
             }
             else
             { // Create
-                if (conn.Execute("INSERT INTO \"note_notification\" (\"id\", \"note_id\", \"contact_id\", \"cleared\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                conn.Execute("INSERT INTO \"note_notification\" (\"id\", \"note_id\", \"contact_id\", \"cleared\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                     "VALUES (@Id, @NoteId, @ContactId, @Cleared, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo) > 0)
-                    model.Id = conn.Query<DBOs.Notes.NoteNotification>("SELECT currval(pg_get_serial_sequence('note_notification', 'id')) AS \"id\"").Single().Id;
+                    dbo);
             }
 
             DataHelper.Close(conn, closeConnection);

@@ -452,15 +452,14 @@ namespace OpenLawOffice.Data.Matters
         
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"matter\" (\"id\", \"matter_type_id\", \"title\", \"active\", \"parent_id\", \"synopsis\", " +
+            conn.Execute("INSERT INTO \"matter\" (\"id\", \"matter_type_id\", \"title\", \"active\", \"parent_id\", \"synopsis\", " +
                 "\"minimum_charge\", \"estimated_charge\", \"maximum_charge\", \"default_billing_rate_id\", \"billing_group_id\", \"override_matter_rate_with_employee_rate\", " +
                 "\"utc_created\", \"utc_modified\", " +
                 "\"created_by_user_pid\", \"modified_by_user_pid\", \"jurisdiction\", \"case_number\", \"lead_attorney_contact_id\", \"bill_to_contact_id\") " +
                 "VALUES (@Id, @MatterTypeId, @Title, @Active, @ParentId, @Synopsis, @MinimumCharge, @EstimatedCharge, @MaximumCharge, @DefaultBillingRateId, @BillingGroupId, @OverrideMatterRateWithEmployeeRate, " +
                 "@UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId, " +
                 "@Jurisdiction, @CaseNumber, @LeadAttorneyContactId, @BillToContactId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Matters.Matter>("SELECT currval(pg_get_serial_sequence('matter', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             MatterContact.Create(new Common.Models.Matters.MatterContact()
             {

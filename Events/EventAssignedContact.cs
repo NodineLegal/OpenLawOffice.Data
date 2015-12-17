@@ -70,10 +70,9 @@ namespace OpenLawOffice.Data.Events
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"event_assigned_contact\" (\"id\", \"event_id\", \"contact_id\", \"role\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+            conn.Execute("INSERT INTO \"event_assigned_contact\" (\"id\", \"event_id\", \"contact_id\", \"role\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Id, @EventId, @ContactId, @Role, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Events.EventAssignedContact>("SELECT currval(pg_get_serial_sequence('event_assigned_contact', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             DataHelper.Close(conn, closeConnection);
 

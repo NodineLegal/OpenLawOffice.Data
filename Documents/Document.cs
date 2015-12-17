@@ -102,10 +102,9 @@ namespace OpenLawOffice.Data.Documents
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"document\" (\"id\", \"date\", \"title\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+            conn.Execute("INSERT INTO \"document\" (\"id\", \"date\", \"title\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Id, @Date, @Title, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Documents.Document>("SELECT currval(pg_get_serial_sequence('document', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             DataHelper.Close(conn, closeConnection);
 
@@ -201,12 +200,11 @@ namespace OpenLawOffice.Data.Documents
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"version\" (\"id\", \"document_id\", \"version_number\", \"mime\", \"filename\", " +
+            conn.Execute("INSERT INTO \"version\" (\"id\", \"document_id\", \"version_number\", \"mime\", \"filename\", " +
                 "\"extension\", \"size\", \"md5\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Id, @DocumentId, @VersionNumber, @Mime, @Filename, @Extension, @Size, @Md5, " +
                 "@UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Documents.Version>("SELECT currval(pg_get_serial_sequence('version', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             DataHelper.Close(conn, closeConnection);
 

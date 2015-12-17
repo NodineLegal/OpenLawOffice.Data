@@ -112,10 +112,9 @@ namespace OpenLawOffice.Data.Billing
             }
             else
             { // Create
-                if (conn.Execute("INSERT INTO \"invoice_expense\" (\"id\", \"expense_id\", \"invoice_id\", \"amount\", \"details\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                conn.Execute("INSERT INTO \"invoice_expense\" (\"id\", \"expense_id\", \"invoice_id\", \"amount\", \"details\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                     "VALUES (@Id, @ExpenseId, @InvoiceId, @Amount, @Details, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo) > 0)
-                    model.Id = conn.Query<DBOs.Billing.InvoiceExpense>("SELECT currval(pg_get_serial_sequence('invoice_expense', 'id')) AS \"id\"").Single().Id;
+                    dbo);
             }
 
             DataHelper.Close(conn, closeConnection);

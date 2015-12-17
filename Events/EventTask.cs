@@ -94,10 +94,9 @@ namespace OpenLawOffice.Data.Events
 
             dbo = Mapper.Map<DBOs.Events.EventTask>(model);
             
-            if (conn.Execute("INSERT INTO \"event_task\" (\"id\", \"task_id\", \"event_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+            conn.Execute("INSERT INTO \"event_task\" (\"id\", \"task_id\", \"event_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Id, @TaskId, @EventId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Events.EventAssignedContact>("SELECT currval(pg_get_serial_sequence('event_task', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             DataHelper.Close(conn, closeConnection);
 

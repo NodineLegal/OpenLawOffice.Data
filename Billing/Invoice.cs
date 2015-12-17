@@ -202,7 +202,7 @@ namespace OpenLawOffice.Data.Billing
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"invoice\" (\"id\", \"bill_to_contact_id\", \"date\", \"due\", " +
+            conn.Execute("INSERT INTO \"invoice\" (\"id\", \"bill_to_contact_id\", \"date\", \"due\", " +
                 "\"subtotal\", \"tax_amount\", \"total\", \"external_invoice_id\", \"bill_to_name_line_1\", " +
                 "\"bill_to_name_line_2\", \"bill_to_address_line_1\", \"bill_to_address_line_2\", " +
                 "\"bill_to_city\", \"bill_to_state\", \"bill_to_zip\", \"matter_id\", \"billing_group_id\", " +
@@ -211,8 +211,7 @@ namespace OpenLawOffice.Data.Billing
                 "@Total, @ExternalInvoiceId, @BillTo_NameLine1, @BillTo_NameLine2, @BillTo_AddressLine1, " +
                 "@BillTo_AddressLine2, @BillTo_City, @BillTo_State, @BillTo_Zip, @MatterId, @BillingGroupId, " +
                 "@UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Billing.Invoice>("SELECT currval(pg_get_serial_sequence('invoice', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             DataHelper.Close(conn, closeConnection);
 

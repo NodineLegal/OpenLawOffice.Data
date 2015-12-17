@@ -83,10 +83,9 @@ namespace OpenLawOffice.Data.External
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"external_session\" (\"id\", \"user_pid\", \"app_name\", \"utc_created\", \"utc_expires\", \"timeout\", \"machine_id\") " +
+            conn.Execute("INSERT INTO \"external_session\" (\"id\", \"user_pid\", \"app_name\", \"utc_created\", \"utc_expires\", \"timeout\", \"machine_id\") " +
                 "VALUES (@Id, @UserPId, @AppName, @UtcCreated, @UtcExpires, @Timeout, @MachineId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.External.ExternalSession>("SELECT currval(pg_get_serial_sequence('external_session', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             DataHelper.Close(conn, closeConnection);
 

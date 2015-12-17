@@ -125,10 +125,9 @@ namespace OpenLawOffice.Data.Tasks
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"task_tag\" (\"id\", \"task_id\", \"tag_category_id\", \"tag\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+            conn.Execute("INSERT INTO \"task_tag\" (\"id\", \"task_id\", \"tag_category_id\", \"tag\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Id, @TaskId, @TagCategoryId, @Tag, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Tasks.TaskResponsibleUser>("SELECT currval(pg_get_serial_sequence('task_tag', 'id')) AS \"id\"").Single().Id;
+                dbo);
 
             DataHelper.Close(conn, closeConnection);
 

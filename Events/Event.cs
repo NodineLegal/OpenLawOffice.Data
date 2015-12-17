@@ -227,10 +227,9 @@ namespace OpenLawOffice.Data.Events
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"event\" (\"id\", \"title\", \"allday\", \"start\", \"end\", \"location\", \"description\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+            conn.Execute("INSERT INTO \"event\" (\"id\", \"title\", \"allday\", \"start\", \"end\", \"location\", \"description\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Id, @Title, @AllDay, @Start, @End, @Location, @Description, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                dbo) > 0)
-                model.Id = conn.Query<DBOs.Events.Event>("SELECT currval(pg_get_serial_sequence('event', 'id')) AS \"id\"").Single().Id;
+                dbo);
             
             DataHelper.Close(conn, closeConnection);
 

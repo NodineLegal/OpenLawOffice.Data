@@ -85,6 +85,7 @@ namespace OpenLawOffice.Data.Events
 
             conn = DataHelper.OpenIfNeeded(conn);
 
+            throw new Exception("this is broke");
             conn.Execute("UPDATE \"event_assigned_conttter\" (\"id\", \"event_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Id, @EventId, @MatterId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
                 dbo);

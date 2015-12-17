@@ -150,10 +150,9 @@ namespace OpenLawOffice.Data.Notes
             }
             else
             { // Create
-                if (conn.Execute("INSERT INTO \"note_matter\" (\"id\", \"note_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                conn.Execute("INSERT INTO \"note_matter\" (\"id\", \"note_id\", \"matter_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                     "VALUES (@Id, @NoteId, @MatterId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
-                    dbo) > 0)
-                    model.Id = conn.Query<DBOs.Notes.NoteMatter>("SELECT currval(pg_get_serial_sequence('note_matter', 'id')) AS \"id\"").Single().Id;
+                    dbo);
             }
 
             DataHelper.Close(conn, closeConnection);
