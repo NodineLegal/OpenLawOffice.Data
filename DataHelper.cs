@@ -232,6 +232,10 @@ namespace OpenLawOffice.Data
                 conn = Database.Instance.GetConnection();
                 conn.Open();
             }
+            else if (conn.State != ConnectionState.Open)
+            {
+                conn.Open();
+            }
 
             return conn;
         }

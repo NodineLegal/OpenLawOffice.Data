@@ -388,6 +388,7 @@ namespace OpenLawOffice.Data.Tasks
             {
                 cmd.Parameters.Add(new Npgsql.NpgsqlParameter("ContactId", DbType.Int32) { Value = contact.Id.Value });
                 parms.ForEach(x => cmd.Parameters.Add(x));
+
                 using (Npgsql.NpgsqlDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
