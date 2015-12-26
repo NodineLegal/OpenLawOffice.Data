@@ -32,7 +32,7 @@ namespace OpenLawOffice.Data.Billing
     {
         public static List<Common.Models.Billing.InvoiceExpense> ListForMatter(
             Guid matterId,
-            IDbConnection conn = null, 
+            IDbConnection conn = null,
             bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Billing.InvoiceExpense, DBOs.Billing.InvoiceExpense>(
@@ -49,9 +49,9 @@ namespace OpenLawOffice.Data.Billing
         }
 
         public static List<Common.Models.Billing.InvoiceExpense> ListForMatterAndInvoice(
-            Guid invoiceId, 
-            Guid matterId, 
-            IDbConnection conn = null, 
+            Guid invoiceId,
+            Guid matterId,
+            IDbConnection conn = null,
             bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Billing.InvoiceExpense, DBOs.Billing.InvoiceExpense>(
@@ -63,16 +63,16 @@ namespace OpenLawOffice.Data.Billing
 
         public static List<Common.Models.Billing.InvoiceExpense> ListForMatterAndInvoice(
             Transaction t,
-            Guid invoiceId, 
+            Guid invoiceId,
             Guid matterId)
         {
             return ListForMatterAndInvoice(invoiceId, matterId, t.Connection, false);
         }
 
         public static Common.Models.Billing.InvoiceExpense Get(
-            Guid invoiceId, 
+            Guid invoiceId,
             Guid expenseId,
-            IDbConnection conn = null, 
+            IDbConnection conn = null,
             bool closeConnection = true)
         {
             return DataHelper.Get<Common.Models.Billing.InvoiceExpense, DBOs.Billing.InvoiceExpense>(
@@ -91,14 +91,14 @@ namespace OpenLawOffice.Data.Billing
         public static Common.Models.Billing.InvoiceExpense Create(
             Common.Models.Billing.InvoiceExpense model,
             Common.Models.Account.Users creator,
-            IDbConnection conn = null, 
+            IDbConnection conn = null,
             bool closeConnection = true)
         {
             if (!model.Id.HasValue) model.Id = Guid.NewGuid();
             model.Created = model.Modified = DateTime.UtcNow;
             model.CreatedBy = model.ModifiedBy = creator;
             DBOs.Billing.InvoiceExpense dbo = Mapper.Map<DBOs.Billing.InvoiceExpense>(model);
-            
+
             conn = DataHelper.OpenIfNeeded(conn);
 
             Common.Models.Billing.InvoiceExpense currentModel = Get(model.Invoice.Id.Value, model.Expense.Id.Value, conn, closeConnection);
@@ -128,6 +128,59 @@ namespace OpenLawOffice.Data.Billing
             Common.Models.Account.Users creator)
         {
             return Create(model, creator, t.Connection, false);
+        }
+
+        public static Common.Models.Billing.InvoiceExpense Edit(
+            Common.Models.Billing.InvoiceExpense model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null,
+            bool closeConnection = true)
+        {
+            model.ModifiedBy = modifier;
+            model.Modified = DateTime.UtcNow;
+            DBOs.Billing.InvoiceExpense dbo = Mapper.Map<DBOs.Billing.InvoiceExpense>(model);
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"invoice_expense\" SET " +
+                "\"amount\"=@Amount, \"details\"=@Details, " +
+                "\"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                    "\"utc_disabled\"=null, \"disabled_by_user_pid\"=null WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
+
+            return model;
+        }
+
+        public static Common.Models.Billing.InvoiceExpense Edit(
+            Transaction t,
+            Common.Models.Billing.InvoiceExpense model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        public static void Delete(
+            Common.Models.Billing.InvoiceExpense model,
+            Common.Models.Account.Users deleter,
+            IDbConnection conn = null,
+            bool closeConnection = true)
+        {
+            DBOs.Billing.InvoiceExpense dbo = Mapper.Map<DBOs.Billing.InvoiceExpense>(model);
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("DELETE FROM \"invoice_expense\" WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
+        }
+
+        public static void Delete(
+            Transaction t,
+            Common.Models.Billing.InvoiceExpense model,
+            Common.Models.Account.Users deleter)
+        {
+            Delete(model, deleter, t.Connection, false);
         }
     }
 }

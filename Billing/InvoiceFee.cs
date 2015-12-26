@@ -129,5 +129,58 @@ namespace OpenLawOffice.Data.Billing
         {
             return Create(model, creator, t.Connection, false);
         }
+
+        public static Common.Models.Billing.InvoiceFee Edit(
+            Common.Models.Billing.InvoiceFee model,
+            Common.Models.Account.Users modifier,
+            IDbConnection conn = null,
+            bool closeConnection = true)
+        {
+            model.ModifiedBy = modifier;
+            model.Modified = DateTime.UtcNow;
+            DBOs.Billing.InvoiceFee dbo = Mapper.Map<DBOs.Billing.InvoiceFee>(model);
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("UPDATE \"invoice_fee\" SET " +
+                "\"amount\"=@Amount, \"details\"=@Details, " +
+                "\"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                    "\"utc_disabled\"=null, \"disabled_by_user_pid\"=null WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
+
+            return model;
+        }
+
+        public static Common.Models.Billing.InvoiceFee Edit(
+            Transaction t,
+            Common.Models.Billing.InvoiceFee model,
+            Common.Models.Account.Users modifier)
+        {
+            return Edit(model, modifier, t.Connection, false);
+        }
+
+        public static void Delete(
+            Common.Models.Billing.InvoiceFee model,
+            Common.Models.Account.Users deleter,
+            IDbConnection conn = null,
+            bool closeConnection = true)
+        {
+            DBOs.Billing.InvoiceFee dbo = Mapper.Map<DBOs.Billing.InvoiceFee>(model);
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            conn.Execute("DELETE FROM \"invoice_fee\" WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
+        }
+
+        public static void Delete(
+            Transaction t,
+            Common.Models.Billing.InvoiceFee model,
+            Common.Models.Account.Users deleter)
+        {
+            Delete(model, deleter, t.Connection, false);
+        }
     }
 }
