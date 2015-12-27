@@ -42,6 +42,48 @@ namespace OpenLawOffice.Data.DBOs.Matters
         [ColumnMapping(Name = "role")]
         public string Role { get; set; }
 
+        [ColumnMapping(Name = "is_client")]
+        public bool IsClient { get; set; }
+
+        [ColumnMapping(Name = "is_client_contact")]
+        public bool IsClientContact { get; set; }
+
+        [ColumnMapping(Name = "is_appointed")]
+        public bool IsAppointed { get; set; }
+
+        [ColumnMapping(Name = "is_party")]
+        public bool IsParty { get; set; }
+
+        [ColumnMapping(Name = "party_title")]
+        public string PartyTitle { get; set; }
+
+        [ColumnMapping(Name = "is_judge")]
+        public bool IsJudge { get; set; }
+
+        [ColumnMapping(Name = "is_witness")]
+        public bool IsWitness { get; set; }
+
+        [ColumnMapping(Name = "is_attorney")]
+        public bool IsAttorney { get; set; }
+
+        [ColumnMapping(Name = "attorney_for_contact_id")]
+        public int? AttorneyForContactId { get; set; }
+
+        [ColumnMapping(Name = "is_lead_attorney")]
+        public bool IsLeadAttorney { get; set; }
+
+        [ColumnMapping(Name = "is_support_staff")]
+        public bool IsSupportStaff { get; set; }
+
+        [ColumnMapping(Name = "support_staff_for_contact_id")]
+        public int? SupportStaffForContactId { get; set; }
+
+        [ColumnMapping(Name = "is_third_party_payor")]
+        public bool IsThirdPartyPayor { get; set; }
+
+        [ColumnMapping(Name = "third_party_payor_for_contact_id")]
+        public int? ThirdPartyPayorForContactId { get; set; }
+
         public void BuildMappings()
         {
             Dapper.SqlMapper.SetTypeMap(typeof(MatterContact), new ColumnAttributeTypeMapper<MatterContact>());
@@ -101,7 +143,45 @@ namespace OpenLawOffice.Data.DBOs.Matters
                         IsStub = true
                     };
                 }))
-                .ForMember(dst => dst.Role, opt => opt.MapFrom(src => src.Role));
+                .ForMember(dst => dst.Role, opt => opt.MapFrom(src => src.Role))
+                .ForMember(dst => dst.IsClient, opt => opt.MapFrom(src => src.IsClient))
+                .ForMember(dst => dst.IsClientContact, opt => opt.MapFrom(src => src.IsClientContact))
+                .ForMember(dst => dst.IsAppointed, opt => opt.MapFrom(src => src.IsAppointed))
+                .ForMember(dst => dst.IsParty, opt => opt.MapFrom(src => src.IsParty))
+                .ForMember(dst => dst.PartyTitle, opt => opt.MapFrom(src => src.PartyTitle))
+                .ForMember(dst => dst.IsJudge, opt => opt.MapFrom(src => src.IsJudge))
+                .ForMember(dst => dst.IsWitness, opt => opt.MapFrom(src => src.IsWitness))
+                .ForMember(dst => dst.IsAttorney, opt => opt.MapFrom(src => src.IsAttorney))
+                .ForMember(dst => dst.AttorneyFor, opt => opt.ResolveUsing(db =>
+                {
+                    if (!db.AttorneyForContactId.HasValue) return null;
+                    return new Common.Models.Contacts.Contact()
+                    {
+                        Id = db.AttorneyForContactId,
+                        IsStub = true
+                    };
+                }))
+                .ForMember(dst => dst.IsLeadAttorney, opt => opt.MapFrom(src => src.IsLeadAttorney))
+                .ForMember(dst => dst.IsSupportStaff, opt => opt.MapFrom(src => src.IsSupportStaff))
+                .ForMember(dst => dst.SupportStaffFor, opt => opt.ResolveUsing(db =>
+                {
+                    if (!db.SupportStaffForContactId.HasValue) return null;
+                    return new Common.Models.Contacts.Contact()
+                    {
+                        Id = db.SupportStaffForContactId,
+                        IsStub = true
+                    };
+                }))
+                .ForMember(dst => dst.IsThirdPartyPayor, opt => opt.MapFrom(src => src.IsThirdPartyPayor))
+                .ForMember(dst => dst.ThirdPartyPayorFor, opt => opt.ResolveUsing(db =>
+                {
+                    if (!db.ThirdPartyPayorForContactId.HasValue) return null;
+                    return new Common.Models.Contacts.Contact()
+                    {
+                        Id = db.ThirdPartyPayorForContactId,
+                        IsStub = true
+                    };
+                }));
 
             Mapper.CreateMap<Common.Models.Matters.MatterContact, DBOs.Matters.MatterContact>()
                 .ForMember(dst => dst.UtcCreated, opt => opt.ResolveUsing(db =>
@@ -146,7 +226,36 @@ namespace OpenLawOffice.Data.DBOs.Matters
                         return null;
                     return model.Contact.Id;
                 }))
-                .ForMember(dst => dst.Role, opt => opt.MapFrom(src => src.Role));
+                .ForMember(dst => dst.Role, opt => opt.MapFrom(src => src.Role))
+                .ForMember(dst => dst.IsClient, opt => opt.MapFrom(src => src.IsClient))
+                .ForMember(dst => dst.IsClientContact, opt => opt.MapFrom(src => src.IsClientContact))
+                .ForMember(dst => dst.IsAppointed, opt => opt.MapFrom(src => src.IsAppointed))
+                .ForMember(dst => dst.IsParty, opt => opt.MapFrom(src => src.IsParty))
+                .ForMember(dst => dst.PartyTitle, opt => opt.MapFrom(src => src.PartyTitle))
+                .ForMember(dst => dst.IsJudge, opt => opt.MapFrom(src => src.IsJudge))
+                .ForMember(dst => dst.IsWitness, opt => opt.MapFrom(src => src.IsWitness))
+                .ForMember(dst => dst.IsAttorney, opt => opt.MapFrom(src => src.IsAttorney))
+                .ForMember(dst => dst.AttorneyForContactId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.AttorneyFor == null)
+                        return null;
+                    return model.AttorneyFor.Id;
+                }))
+                .ForMember(dst => dst.IsLeadAttorney, opt => opt.MapFrom(src => src.IsLeadAttorney))
+                .ForMember(dst => dst.IsSupportStaff, opt => opt.MapFrom(src => src.IsSupportStaff))
+                .ForMember(dst => dst.SupportStaffForContactId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.SupportStaffFor == null)
+                        return null;
+                    return model.SupportStaffFor.Id;
+                }))
+                .ForMember(dst => dst.IsThirdPartyPayor, opt => opt.MapFrom(src => src.IsThirdPartyPayor))
+                .ForMember(dst => dst.ThirdPartyPayorForContactId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.ThirdPartyPayorFor == null)
+                        return null;
+                    return model.ThirdPartyPayorFor.Id;
+                }));
         }
     }
 }

@@ -24,7 +24,7 @@ namespace OpenLawOffice.Data.DBOs.Hotdocs
     using System;
     using AutoMapper;
 
-    [Common.Models.MapMe]
+    //[Common.Models.MapMe]
     public class MatterHotdocs : Core
     {
         [ColumnMapping(Name = "id")]

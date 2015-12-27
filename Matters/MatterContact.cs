@@ -128,8 +128,15 @@ namespace OpenLawOffice.Data.Matters
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"matter_contact\" (\"matter_id\", \"contact_id\", \"role\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                "VALUES (@MatterId, @ContactId, @Role, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+            if (conn.Execute("INSERT INTO \"matter_contact\" (\"matter_id\", \"contact_id\", \"role\", " +
+                "\"is_client\", \"is_client_contact\", \"is_appointed\", \"is_party\", \"party_title\", \"is_judge\", " +
+                "\"is_witness\", \"is_attorney\", \"attorney_for_contact_id\", \"is_lead_attorney\", \"is_support_staff\", " +
+                "\"support_staff_for_contact_id\", \"is_third_party_payor\", \"third_party_payor_for_contact_id\", " +
+                "\"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@MatterId, @ContactId, @Role, @IsClient, @IsClientContact, @IsAppointed, @IsParty, " +
+                "@PartyTitle, @IsJudge, @IsWitness, @IsAttorney, @AttorneyForContactId, @IsLeadAttorney, " +
+                "@IsSupportStaff, @SupportStaffForContactId, @IsThirdPartyPayor, @ThirdPartyPayorForContactId, " +
+                "@UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
                 dbo) > 0)
                 model.Id = conn.Query<DBOs.Matters.MatterContact>("SELECT currval(pg_get_serial_sequence('matter_contact', 'id')) AS \"id\"").Single().Id;
 
@@ -159,7 +166,13 @@ namespace OpenLawOffice.Data.Matters
             conn = DataHelper.OpenIfNeeded(conn);
 
             conn.Execute("UPDATE \"matter_contact\" SET " +
-                "\"matter_id\"=@MatterId, \"contact_id\"=@ContactId, \"role\"=@Role, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "\"matter_id\"=@MatterId, \"contact_id\"=@ContactId, \"role\"=@Role, " +
+                "\"is_client\"=@IsClient, \"is_client_contact\"=@IsClientContact, \"is_appointed\"=@IsAppointed, " +
+                "\"is_party\"=@IsParty, \"party_title\"=@PartyTitle, \"is_judge\"=@IsJudge, " +
+                "\"is_witness\"=@IsWitness, \"is_attorney\"=@IsAttorney, " +
+                "\"attorney_for_contact_id\"=@AttorneyForContactId, \"is_lead_attorney\"=@IsLeadAttorney, \"is_support_staff\"=@IsSupportStaff, " +
+                "\"support_staff_for_contact_id\"=@SupportStaffForContactId, \"is_third_party_payor\"=@IsThirdPartyPayor, \"third_party_payor_for_contact_id\"=@ThirdPartyPayorForContactId, " +
+                "\"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
                 "WHERE \"id\"=@Id", dbo);
 
             DataHelper.Close(conn, closeConnection);

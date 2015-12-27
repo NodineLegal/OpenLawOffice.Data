@@ -106,7 +106,6 @@
     <Compile Include="DateTimeExtensions.cs" />
     <Compile Include="DBOs\Events\Event.cs" />
     <Compile Include="DBOs\Events\EventAssignedContact.cs" />
-    <Compile Include="DBOs\Events\EventResponsibleUser.cs" />
     <Compile Include="DBOs\ColumnAttributeTypeMapper.cs" />
     <Compile Include="DBOs\Contacts\Contact.cs" />
     <Compile Include="DBOs\Core.cs" />
@@ -119,7 +118,6 @@
     <Compile Include="DBOs\Matters\Matter.cs" />
     <Compile Include="DBOs\Matters\MatterContact.cs" />
     <Compile Include="DBOs\Matters\MatterTag.cs" />
-    <Compile Include="DBOs\Matters\ResponsibleUser.cs" />
     <Compile Include="DBOs\Notes\Note.cs" />
     <Compile Include="DBOs\Notes\NoteMatter.cs" />
     <Compile Include="DBOs\Notes\NoteTask.cs" />
@@ -130,7 +128,6 @@
     <Compile Include="DBOs\Tasks\Task.cs" />
     <Compile Include="DBOs\Tasks\TaskAssignedContact.cs" />
     <Compile Include="DBOs\Tasks\TaskMatter.cs" />
-    <Compile Include="DBOs\Tasks\TaskResponsibleUser.cs" />
     <Compile Include="DBOs\Tasks\TaskTag.cs" />
     <Compile Include="DBOs\Tasks\TaskTime.cs" />
     <Compile Include="DBOs\Timing\Time.cs" />
@@ -142,7 +139,6 @@
     <Compile Include="Events\EventMatter.cs" />
     <Compile Include="Events\EventNote.cs" />
     <Compile Include="Events\EventTag.cs" />
-    <Compile Include="Events\EventResponsibleUser.cs" />
     <Compile Include="Events\EventTask.cs" />
     <Compile Include="External\ExternalSession.cs" />
     <Compile Include="Forms\Form.cs" />
@@ -154,7 +150,6 @@
     <Compile Include="Matters\MatterContact.cs" />
     <Compile Include="Matters\MatterTag.cs" />
     <Compile Include="Matters\MatterType.cs" />
-    <Compile Include="Matters\ResponsibleUser.cs" />
     <Compile Include="Notes\Note.cs" />
     <Compile Include="Notes\NoteMatter.cs" />
     <Compile Include="Notes\NoteNotification.cs" />
@@ -175,7 +170,6 @@
     <Compile Include="Tasks\Task.cs" />
     <Compile Include="Tasks\TaskAssignedContact.cs" />
     <Compile Include="Tasks\TaskMatter.cs" />
-    <Compile Include="Tasks\TaskResponsibleUser.cs" />
     <Compile Include="Tasks\TaskTag.cs" />
     <Compile Include="Tasks\TaskTemplate.cs" />
     <Compile Include="Tasks\TaskTime.cs" />
