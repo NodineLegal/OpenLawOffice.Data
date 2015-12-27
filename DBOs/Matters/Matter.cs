@@ -30,6 +30,9 @@ namespace OpenLawOffice.Data.DBOs.Matters
         [ColumnMapping(Name = "id")]
         public Guid Id { get; set; }
 
+        [ColumnMapping(Name = "id_int")]
+        public long IdInt { get; set; }
+
         [ColumnMapping(Name = "matter_type_id")]
         public int? MatterTypeId { get; set; }
 
@@ -44,9 +47,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
 
         [ColumnMapping(Name = "active")]
         public bool Active { get; set; }
-
-        [ColumnMapping(Name = "jurisdiction")]
-        public string Jurisdiction { get; set; }
 
         [ColumnMapping(Name = "case_number")]
         public string CaseNumber { get; set; }
@@ -74,6 +74,36 @@ namespace OpenLawOffice.Data.DBOs.Matters
 
         [ColumnMapping(Name = "override_matter_rate_with_employee_rate")]
         public bool OverrideMatterRateWithEmployeeRate { get; set; }
+
+        [ColumnMapping(Name = "attorney_for_party_title")]
+        public string AttorneyForPartyTitle { get; set; }
+
+        [ColumnMapping(Name = "court_type_id")]
+        public int? CourtTypeId { get; set; }
+
+        [ColumnMapping(Name = "court_geographical_jurisdiction_id")]
+        public int? CourtGeographicalJurisdictionId { get; set; }
+
+        [ColumnMapping(Name = "court_sitting_in_city_id")]
+        public int? CourtSittingInCityId { get; set; }
+
+        [ColumnMapping(Name = "caption_plaintiff_or_subject_short")]
+        public string CaptionPlaintiffOrSubjectShort { get; set; }
+
+        [ColumnMapping(Name = "caption_plaintiff_or_subject_regular")]
+        public string CaptionPlaintiffOrSubjectRegular { get; set; }
+
+        [ColumnMapping(Name = "caption_plaintiff_or_subject_long")]
+        public string CaptionPlaintiffOrSubjectLong { get; set; }
+
+        [ColumnMapping(Name = "caption_other_party_short")]
+        public string CaptionOtherPartyShort { get; set; }
+
+        [ColumnMapping(Name = "caption_other_party_regular")]
+        public string CaptionOtherPartyRegular { get; set; }
+
+        [ColumnMapping(Name = "caption_other_party_long")]
+        public string CaptionOtherPartyLong { get; set; }
 
         public void BuildMappings()
         {
@@ -118,6 +148,7 @@ namespace OpenLawOffice.Data.DBOs.Matters
                     };
                 }))
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dst => dst.IdInt, opt => opt.MapFrom(src => src.IdInt))
                 .ForMember(dst => dst.ParentId, opt => opt.MapFrom(src => src.ParentId))
                 .ForMember(dst => dst.MatterType, opt => opt.ResolveUsing(db =>
                 {
@@ -131,7 +162,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dst => dst.Synopsis, opt => opt.MapFrom(src => src.Synopsis))
                 .ForMember(dst => dst.Active, opt => opt.MapFrom(src => src.Active))
-                .ForMember(dst => dst.Jurisdiction, opt => opt.MapFrom(src => src.Jurisdiction))
                 .ForMember(dst => dst.CaseNumber, opt => opt.MapFrom(src => src.CaseNumber))
                 .ForMember(dst => dst.LeadAttorney, opt => opt.ResolveUsing(db =>
                 {
@@ -172,7 +202,17 @@ namespace OpenLawOffice.Data.DBOs.Matters
                         IsStub = true
                     };
                 }))
-                .ForMember(dst => dst.OverrideMatterRateWithEmployeeRate, opt => opt.MapFrom(src => src.OverrideMatterRateWithEmployeeRate));
+                .ForMember(dst => dst.OverrideMatterRateWithEmployeeRate, opt => opt.MapFrom(src => src.OverrideMatterRateWithEmployeeRate))
+                .ForMember(dst => dst.AttorneyForPartyTitle, opt => opt.MapFrom(src => src.AttorneyForPartyTitle))
+                .ForMember(dst => dst.CourtType, opt => opt.MapFrom(src => src.CourtType))
+                .ForMember(dst => dst.CourtGeographicalJurisdiction, opt => opt.MapFrom(src => src.CourtGeographicalJurisdiction))
+                .ForMember(dst => dst.CourtSittingInCity, opt => opt.MapFrom(src => src.CourtSittingInCity))
+                .ForMember(dst => dst.CaptionPlaintiffOrSubjectShort, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectShort))
+                .ForMember(dst => dst.CaptionPlaintiffOrSubjectRegular, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectRegular))
+                .ForMember(dst => dst.CaptionPlaintiffOrSubjectLong, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectLong))
+                .ForMember(dst => dst.CaptionOtherPartyShort, opt => opt.MapFrom(src => src.CaptionOtherPartyShort))
+                .ForMember(dst => dst.CaptionOtherPartyRegular, opt => opt.MapFrom(src => src.CaptionOtherPartyRegular))
+                .ForMember(dst => dst.CaptionOtherPartyLong, opt => opt.MapFrom(src => src.CaptionOtherPartyLong));
 
             Mapper.CreateMap<Common.Models.Matters.Matter, DBOs.Matters.Matter>()
                 .ForMember(dst => dst.UtcCreated, opt => opt.ResolveUsing(db =>
@@ -205,6 +245,7 @@ namespace OpenLawOffice.Data.DBOs.Matters
                     return model.DisabledBy.PId;
                 }))
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dst => dst.IdInt, opt => opt.MapFrom(src => src.IdInt))
                 .ForMember(dst => dst.ParentId, opt => opt.MapFrom(src => src.ParentId))
                 .ForMember(dst => dst.MatterTypeId, opt => opt.ResolveUsing(model =>
                 {
@@ -214,7 +255,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 .ForMember(dst => dst.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dst => dst.Synopsis, opt => opt.MapFrom(src => src.Synopsis))
                 .ForMember(dst => dst.Active, opt => opt.MapFrom(src => src.Active))
-                .ForMember(dst => dst.Jurisdiction, opt => opt.MapFrom(src => src.Jurisdiction))
                 .ForMember(dst => dst.CaseNumber, opt => opt.MapFrom(src => src.CaseNumber))
                 .ForMember(dst => dst.LeadAttorneyContactId, opt => opt.ResolveUsing(model =>
                 {
@@ -239,7 +279,17 @@ namespace OpenLawOffice.Data.DBOs.Matters
                     if (model.BillingGroup == null) return null;
                     return model.BillingGroup.Id;
                 }))
-                .ForMember(dst => dst.OverrideMatterRateWithEmployeeRate, opt => opt.MapFrom(src => src.OverrideMatterRateWithEmployeeRate));
+                .ForMember(dst => dst.OverrideMatterRateWithEmployeeRate, opt => opt.MapFrom(src => src.OverrideMatterRateWithEmployeeRate))
+                .ForMember(dst => dst.AttorneyForPartyTitle, opt => opt.MapFrom(src => src.AttorneyForPartyTitle))
+                .ForMember(dst => dst.CourtType, opt => opt.MapFrom(src => src.CourtType))
+                .ForMember(dst => dst.CourtGeographicalJurisdiction, opt => opt.MapFrom(src => src.CourtGeographicalJurisdiction))
+                .ForMember(dst => dst.CourtSittingInCity, opt => opt.MapFrom(src => src.CourtSittingInCity))
+                .ForMember(dst => dst.CaptionPlaintiffOrSubjectShort, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectShort))
+                .ForMember(dst => dst.CaptionPlaintiffOrSubjectRegular, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectRegular))
+                .ForMember(dst => dst.CaptionPlaintiffOrSubjectLong, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectLong))
+                .ForMember(dst => dst.CaptionOtherPartyShort, opt => opt.MapFrom(src => src.CaptionOtherPartyShort))
+                .ForMember(dst => dst.CaptionOtherPartyRegular, opt => opt.MapFrom(src => src.CaptionOtherPartyRegular))
+                .ForMember(dst => dst.CaptionOtherPartyLong, opt => opt.MapFrom(src => src.CaptionOtherPartyLong));
         }
     }
 }

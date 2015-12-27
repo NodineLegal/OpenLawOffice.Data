@@ -95,7 +95,6 @@
     <Compile Include="DBOs\Forms\Form.cs" />
     <Compile Include="DBOs\Forms\FormField.cs" />
     <Compile Include="DBOs\Forms\FormFieldMatter.cs" />
-    <Compile Include="DBOs\Hotdocs\MatterHotdocs.cs" />
     <Compile Include="DBOs\Matters\MatterType.cs" />
     <Compile Include="DBOs\Notes\NoteNotification.cs" />
     <Compile Include="DBOs\Tasks\TaskTemplate.cs" />
@@ -144,7 +143,6 @@
     <Compile Include="Forms\Form.cs" />
     <Compile Include="Forms\FormField.cs" />
     <Compile Include="Forms\FormFieldMatter.cs" />
-    <Compile Include="Hotdocs\MatterHotdocs.cs" />
     <Compile Include="Installation\Setup.cs" />
     <Compile Include="Matters\Matter.cs" />
     <Compile Include="Matters\MatterContact.cs" />
