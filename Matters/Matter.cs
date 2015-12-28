@@ -42,7 +42,7 @@ namespace OpenLawOffice.Data.Matters
             return DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
                 "SELECT * FROM \"matter\" WHERE (LOWER(\"title\") LIKE '%' || LOWER(@Title) || '%') OR " +
                 //"OR (LOWER(\"title\") LIKE '%' || @Title || '%') OR " +
-                "(\"jurisdiction\"=@Jurisdiction AND " +
+                "(\"court_type_id\"=@CourtTypeId AND \"court_geographical_jurisdiction_id\"=@CourtGeographicalJurisdictionId AND " +
                 "\"case_number\"=@CaseNumber) OR (\"bill_to_contact_id\"=@BillToContactId AND \"case_number\"=@CaseNumber) AND \"utc_disabled\" is null",
                 dbo, conn, closeConnection);
         }
@@ -157,7 +157,7 @@ namespace OpenLawOffice.Data.Matters
             {
                 sql += " AND \"active\"=@Active ";
             }
-            if (!string.IsNullOrEmpty(contactFilter))
+            if (!string.IsNullOrEmpty(contactFilter)) ***FLAGS***
             {
                 sql += " AND \"id\" IN (SELECT \"matter_id\" FROM \"matter_contact\" WHERE " +
                     "\"contact_id\" IN (SELECT \"id\" FROM \"contact\" WHERE LOWER(\"display_name\") LIKE '%' || @ContactFilter || '%'))";
