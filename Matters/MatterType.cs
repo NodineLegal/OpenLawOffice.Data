@@ -28,7 +28,7 @@ namespace OpenLawOffice.Data.Matters
     using AutoMapper;
     using Dapper;
 
-    public class MatterType
+    public static class MatterType
     {
         public static Common.Models.Matters.MatterType Get(
             int id,

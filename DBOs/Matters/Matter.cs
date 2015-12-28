@@ -204,9 +204,33 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 }))
                 .ForMember(dst => dst.OverrideMatterRateWithEmployeeRate, opt => opt.MapFrom(src => src.OverrideMatterRateWithEmployeeRate))
                 .ForMember(dst => dst.AttorneyForPartyTitle, opt => opt.MapFrom(src => src.AttorneyForPartyTitle))
-                .ForMember(dst => dst.CourtType, opt => opt.MapFrom(src => src.CourtType))
-                .ForMember(dst => dst.CourtGeographicalJurisdiction, opt => opt.MapFrom(src => src.CourtGeographicalJurisdiction))
-                .ForMember(dst => dst.CourtSittingInCity, opt => opt.MapFrom(src => src.CourtSittingInCity))
+                .ForMember(dst => dst.CourtType, opt => opt.ResolveUsing(db =>
+                {
+                    if (!db.CourtTypeId.HasValue) return null;
+                    return new Common.Models.Billing.BillingGroup()
+                    {
+                        Id = db.CourtTypeId.Value,
+                        IsStub = true
+                    };
+                }))
+                .ForMember(dst => dst.CourtGeographicalJurisdiction, opt => opt.ResolveUsing(db =>
+                {
+                    if (!db.CourtGeographicalJurisdictionId.HasValue) return null;
+                    return new Common.Models.Billing.BillingGroup()
+                    {
+                        Id = db.CourtGeographicalJurisdictionId.Value,
+                        IsStub = true
+                    };
+                }))
+                .ForMember(dst => dst.CourtSittingInCity, opt => opt.ResolveUsing(db =>
+                {
+                    if (!db.CourtSittingInCityId.HasValue) return null;
+                    return new Common.Models.Billing.BillingGroup()
+                    {
+                        Id = db.CourtSittingInCityId.Value,
+                        IsStub = true
+                    };
+                }))
                 .ForMember(dst => dst.CaptionPlaintiffOrSubjectShort, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectShort))
                 .ForMember(dst => dst.CaptionPlaintiffOrSubjectRegular, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectRegular))
                 .ForMember(dst => dst.CaptionPlaintiffOrSubjectLong, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectLong))
@@ -281,9 +305,21 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 }))
                 .ForMember(dst => dst.OverrideMatterRateWithEmployeeRate, opt => opt.MapFrom(src => src.OverrideMatterRateWithEmployeeRate))
                 .ForMember(dst => dst.AttorneyForPartyTitle, opt => opt.MapFrom(src => src.AttorneyForPartyTitle))
-                .ForMember(dst => dst.CourtType, opt => opt.MapFrom(src => src.CourtType))
-                .ForMember(dst => dst.CourtGeographicalJurisdiction, opt => opt.MapFrom(src => src.CourtGeographicalJurisdiction))
-                .ForMember(dst => dst.CourtSittingInCity, opt => opt.MapFrom(src => src.CourtSittingInCity))
+                .ForMember(dst => dst.CourtTypeId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.CourtType == null) return null;
+                    return model.CourtType.Id;
+                }))
+                .ForMember(dst => dst.CourtGeographicalJurisdictionId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.CourtGeographicalJurisdiction == null) return null;
+                    return model.CourtGeographicalJurisdiction.Id;
+                }))
+                .ForMember(dst => dst.CourtSittingInCityId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.CourtSittingInCity == null) return null;
+                    return model.CourtSittingInCity.Id;
+                }))
                 .ForMember(dst => dst.CaptionPlaintiffOrSubjectShort, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectShort))
                 .ForMember(dst => dst.CaptionPlaintiffOrSubjectRegular, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectRegular))
                 .ForMember(dst => dst.CaptionPlaintiffOrSubjectLong, opt => opt.MapFrom(src => src.CaptionPlaintiffOrSubjectLong))

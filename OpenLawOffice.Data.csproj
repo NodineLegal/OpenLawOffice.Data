@@ -95,6 +95,9 @@
     <Compile Include="DBOs\Forms\Form.cs" />
     <Compile Include="DBOs\Forms\FormField.cs" />
     <Compile Include="DBOs\Forms\FormFieldMatter.cs" />
+    <Compile Include="DBOs\Matters\CourtGeographicalJurisdiction.cs" />
+    <Compile Include="DBOs\Matters\CourtSittingInCity.cs" />
+    <Compile Include="DBOs\Matters\CourtType.cs" />
     <Compile Include="DBOs\Matters\MatterType.cs" />
     <Compile Include="DBOs\Notes\NoteNotification.cs" />
     <Compile Include="DBOs\Tasks\TaskTemplate.cs" />
@@ -144,6 +147,9 @@
     <Compile Include="Forms\FormField.cs" />
     <Compile Include="Forms\FormFieldMatter.cs" />
     <Compile Include="Installation\Setup.cs" />
+    <Compile Include="Matters\CourtGeographicalJurisdiction.cs" />
+    <Compile Include="Matters\CourtSittingInCity.cs" />
+    <Compile Include="Matters\CourtType.cs" />
     <Compile Include="Matters\Matter.cs" />
     <Compile Include="Matters\MatterContact.cs" />
     <Compile Include="Matters\MatterTag.cs" />
