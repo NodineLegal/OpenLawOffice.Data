@@ -27,8 +27,7 @@ namespace OpenLawOffice.Data.Matters
     using Dapper;
     using System.Collections.Generic;
     using System.Linq;
-
-    [Common.Models.MapMe]
+    
     public static class CourtSittingInCity
     {
         public static Common.Models.Matters.CourtSittingInCity Get(

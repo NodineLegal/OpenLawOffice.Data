@@ -207,7 +207,7 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 .ForMember(dst => dst.CourtType, opt => opt.ResolveUsing(db =>
                 {
                     if (!db.CourtTypeId.HasValue) return null;
-                    return new Common.Models.Billing.BillingGroup()
+                    return new Common.Models.Matters.CourtType()
                     {
                         Id = db.CourtTypeId.Value,
                         IsStub = true
@@ -216,7 +216,7 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 .ForMember(dst => dst.CourtGeographicalJurisdiction, opt => opt.ResolveUsing(db =>
                 {
                     if (!db.CourtGeographicalJurisdictionId.HasValue) return null;
-                    return new Common.Models.Billing.BillingGroup()
+                    return new Common.Models.Matters.CourtGeographicalJurisdiction()
                     {
                         Id = db.CourtGeographicalJurisdictionId.Value,
                         IsStub = true
@@ -225,7 +225,7 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 .ForMember(dst => dst.CourtSittingInCity, opt => opt.ResolveUsing(db =>
                 {
                     if (!db.CourtSittingInCityId.HasValue) return null;
-                    return new Common.Models.Billing.BillingGroup()
+                    return new Common.Models.Matters.CourtSittingInCity()
                     {
                         Id = db.CourtSittingInCityId.Value,
                         IsStub = true

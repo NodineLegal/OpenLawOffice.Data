@@ -27,8 +27,7 @@ namespace OpenLawOffice.Data.Matters
     using System.Collections.Generic;
     using Dapper;
     using System.Linq;
-
-    [Common.Models.MapMe]
+    
     public static class CourtGeographicalJurisdiction
     {
         public static Common.Models.Matters.CourtGeographicalJurisdiction Get(

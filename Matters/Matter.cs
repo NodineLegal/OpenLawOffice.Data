@@ -137,8 +137,9 @@ namespace OpenLawOffice.Data.Matters
             bool? active, 
             string contactFilter, 
             string titleFilter, 
-            string caseNumberFilter, 
-            string jurisdictionFilter,
+            string caseNumberFilter,
+            int? courtTypeFilter,
+            int? courtGeographicalJurisdictionFilter,
             IDbConnection conn = null, 
             bool closeConnection = true)
         {
@@ -150,14 +151,12 @@ namespace OpenLawOffice.Data.Matters
                 titleFilter = titleFilter.ToLower();
             if (caseNumberFilter != null)
                 caseNumberFilter = caseNumberFilter.ToLower();
-            if (jurisdictionFilter != null)
-                jurisdictionFilter = jurisdictionFilter.ToLower();
 
             if (active.HasValue)
             {
                 sql += " AND \"active\"=@Active ";
             }
-            if (!string.IsNullOrEmpty(contactFilter)) ***FLAGS***
+            if (!string.IsNullOrEmpty(contactFilter))
             {
                 sql += " AND \"id\" IN (SELECT \"matter_id\" FROM \"matter_contact\" WHERE " +
                     "\"contact_id\" IN (SELECT \"id\" FROM \"contact\" WHERE LOWER(\"display_name\") LIKE '%' || @ContactFilter || '%'))";
@@ -170,9 +169,13 @@ namespace OpenLawOffice.Data.Matters
             {
                 sql += " AND LOWER(\"case_number\") LIKE '%' || @CaseNumberFilter || '%' ";
             }
-            if (!string.IsNullOrEmpty(jurisdictionFilter))
+            if (courtTypeFilter.HasValue)
             {
-                sql += " AND LOWER(\"jurisdiction\") LIKE '%' || @JurisdictionFilter || '%' ";
+                sql += " AND \"court_type_filter\"=@CourtTypeFilter ";
+            }
+            if (courtGeographicalJurisdictionFilter.HasValue)
+            {
+                sql += " AND \"court_geographical_jurisdictionFilter\"=@CourtGeographicalJurisdictionFilter ";
             }
 
             if (active.HasValue)
@@ -183,7 +186,8 @@ namespace OpenLawOffice.Data.Matters
                         ContactFilter = contactFilter,
                         TitleFilter = titleFilter,
                         CaseNumberFilter = caseNumberFilter,
-                        JurisdictionFilter = jurisdictionFilter
+                        CourtTypeFilter = courtTypeFilter,
+                        CourtGeographicalJurisdictionFilter = courtGeographicalJurisdictionFilter
                     }, conn, closeConnection);
             else
                 return DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(sql,
@@ -192,7 +196,8 @@ namespace OpenLawOffice.Data.Matters
                         ContactFilter = contactFilter,
                         TitleFilter = titleFilter,
                         CaseNumberFilter = caseNumberFilter,
-                        JurisdictionFilter = jurisdictionFilter
+                        CourtTypeFilter = courtTypeFilter,
+                        CourtGeographicalJurisdictionFilter = courtGeographicalJurisdictionFilter
                     }, conn, closeConnection);
         }
 
@@ -202,9 +207,10 @@ namespace OpenLawOffice.Data.Matters
             string contactFilter,
             string titleFilter,
             string caseNumberFilter,
-            string jurisdictionFilter)
+            int? courtTypeFilter,
+            int? courtGeographicalJurisdictionFilter)
         {
-            return List(active, contactFilter, titleFilter, caseNumberFilter, jurisdictionFilter, t.Connection, false);
+            return List(active, contactFilter, titleFilter, caseNumberFilter, courtTypeFilter, courtGeographicalJurisdictionFilter, t.Connection, false);
         }
 
         public static List<Common.Models.Matters.Matter> ListTitlesOnly(
@@ -243,25 +249,6 @@ namespace OpenLawOffice.Data.Matters
             string caseNumber)
         {
             return ListCaseNumbersOnly(caseNumber, t.Connection, false);
-        }
-
-        public static List<Common.Models.Matters.Matter> ListJurisdictionsOnly(
-            string jurisdiction,
-            IDbConnection conn = null, 
-            bool closeConnection = true)
-        {
-            if (!string.IsNullOrEmpty(jurisdiction))
-                jurisdiction = jurisdiction.ToLower();
-            return DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
-                "SELECT DISTINCT \"jurisdiction\" FROM \"matter\" WHERE \"utc_disabled\" is null AND LOWER(\"jurisdiction\") LIKE '%' || @Jurisdiction || '%'",
-                new { Jurisdiction = jurisdiction }, conn, closeConnection);
-        }
-
-        public static List<Common.Models.Matters.Matter> ListJurisdictionsOnly(
-            Transaction t,
-            string jurisdiction)
-        {
-            return ListJurisdictionsOnly(jurisdiction, t.Connection, false);
         }
 
         public static List<Common.Models.Matters.Matter> ListChildren(
@@ -454,11 +441,14 @@ namespace OpenLawOffice.Data.Matters
 
             conn.Execute("INSERT INTO \"matter\" (\"id\", \"matter_type_id\", \"title\", \"active\", \"parent_id\", \"synopsis\", " +
                 "\"minimum_charge\", \"estimated_charge\", \"maximum_charge\", \"default_billing_rate_id\", \"billing_group_id\", \"override_matter_rate_with_employee_rate\", " +
+                "\"attorney_for_party_title\", \"court_type_id\", \"court_geographical_jurisdiction_id\", \"court_sitting_in_city_id\", \"caption_plaintiff_or_subject_short\", " +
+                "\"caption_plaintiff_or_subject_regular\", \"caption_plaintiff_or_subject_long\", \"caption_other_party_short\", " +
+                "\"caption_other_party_regular\", \"caption_other_party_long\", " +
                 "\"utc_created\", \"utc_modified\", " +
-                "\"created_by_user_pid\", \"modified_by_user_pid\", \"jurisdiction\", \"case_number\", \"lead_attorney_contact_id\", \"bill_to_contact_id\") " +
+                "\"created_by_user_pid\", \"modified_by_user_pid\", \"case_number\", \"lead_attorney_contact_id\", \"bill_to_contact_id\") " +
                 "VALUES (@Id, @MatterTypeId, @Title, @Active, @ParentId, @Synopsis, @MinimumCharge, @EstimatedCharge, @MaximumCharge, @DefaultBillingRateId, @BillingGroupId, @OverrideMatterRateWithEmployeeRate, " +
                 "@UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId, " +
-                "@Jurisdiction, @CaseNumber, @LeadAttorneyContactId, @BillToContactId)",
+                "@CaseNumber, @LeadAttorneyContactId, @BillToContactId)",
                 dbo);
 
             MatterContact.Create(new Common.Models.Matters.MatterContact()
@@ -496,7 +486,12 @@ namespace OpenLawOffice.Data.Matters
                 "\"title\"=@Title, \"active\"=@Active, \"parent_id\"=@ParentId, \"synopsis\"=@Synopsis, \"utc_modified\"=@UtcModified, " +
                 "\"minimum_charge\"=@MinimumCharge, \"estimated_charge\"=@EstimatedCharge, \"maximum_charge\"=@MaximumCharge, " +
                 "\"default_billing_rate_id\"=@DefaultBillingRateId, \"billing_group_id\"=@BillingGroupId, \"override_matter_rate_with_employee_rate\"=@OverrideMatterRateWithEmployeeRate, " +
-                "\"modified_by_user_pid\"=@ModifiedByUserPId, \"jurisdiction\"=@Jurisdiction, \"case_number\"=@CaseNumber, \"lead_attorney_contact_id\"=@LeadAttorneyContactId, \"bill_to_contact_id\"=@BillToContactId " +
+                "\"attorney_for_party_title\"=@AttorneyForPartyTitle, \"court_type_id\"=@CourtTypeId, \"court_geographical_jurisdiction_id\"=@CourtGeographicalJurisdictionId, " +
+                "\"court_sitting_in_city_id\"=@CourtSittingInCityId, \"caption_plaintiff_or_subject_short\"=@CaptionPlaintiffOrSubjectShort, " +
+                "\"caption_plaintiff_or_subject_regular\"=@CaptionPlaintiffOrSubjectRegular, \"caption_plaintiff_or_subject_long\"=@CaptionPlaintiffOrSubjectLong, " +
+                "\"caption_other_party_short\"=@CaptionOtherPartyShort, " +
+                "\"caption_other_party_regular\"=@CaptionOtherPartyRegular, \"caption_other_party_long\"=@CaptionOtherPartyLong, " +
+                "\"modified_by_user_pid\"=@ModifiedByUserPId, \"case_number\"=@CaseNumber, \"lead_attorney_contact_id\"=@LeadAttorneyContactId, \"bill_to_contact_id\"=@BillToContactId " +
                 "WHERE \"id\"=@Id", dbo);
 
             leadAttorneyMatches = MatterContact.ListForMatterByRole(dbo.Id, "Lead Attorney", conn, false);

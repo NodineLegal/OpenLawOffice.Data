@@ -28,7 +28,6 @@ namespace OpenLawOffice.Data.Matters
     using Dapper;
     using System.Linq;
 
-    [Common.Models.MapMe]
     public static class CourtType
     {
         public static Common.Models.Matters.CourtType Get(
