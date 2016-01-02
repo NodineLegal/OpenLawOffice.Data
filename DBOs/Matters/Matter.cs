@@ -51,9 +51,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
         [ColumnMapping(Name = "case_number")]
         public string CaseNumber { get; set; }
 
-        [ColumnMapping(Name = "lead_attorney_contact_id")]
-        public int? LeadAttorneyContactId { get; set; }
-
         [ColumnMapping(Name = "bill_to_contact_id")]
         public int? BillToContactId { get; set; }
 
@@ -163,15 +160,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 .ForMember(dst => dst.Synopsis, opt => opt.MapFrom(src => src.Synopsis))
                 .ForMember(dst => dst.Active, opt => opt.MapFrom(src => src.Active))
                 .ForMember(dst => dst.CaseNumber, opt => opt.MapFrom(src => src.CaseNumber))
-                .ForMember(dst => dst.LeadAttorney, opt => opt.ResolveUsing(db =>
-                {
-                    if (!db.LeadAttorneyContactId.HasValue) return null;
-                    return new Common.Models.Contacts.Contact()
-                    {
-                        Id = db.LeadAttorneyContactId.Value,
-                        IsStub = true
-                    };
-                }))
                 .ForMember(dst => dst.BillTo, opt => opt.ResolveUsing(db =>
                 {
                     if (!db.BillToContactId.HasValue) return null;
@@ -280,11 +268,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
                 .ForMember(dst => dst.Synopsis, opt => opt.MapFrom(src => src.Synopsis))
                 .ForMember(dst => dst.Active, opt => opt.MapFrom(src => src.Active))
                 .ForMember(dst => dst.CaseNumber, opt => opt.MapFrom(src => src.CaseNumber))
-                .ForMember(dst => dst.LeadAttorneyContactId, opt => opt.ResolveUsing(model =>
-                {
-                    if (model.LeadAttorney == null) return null;
-                    return model.LeadAttorney.Id;
-                }))
                 .ForMember(dst => dst.BillToContactId, opt => opt.ResolveUsing(model =>
                 {
                     if (model.BillTo == null) return null;

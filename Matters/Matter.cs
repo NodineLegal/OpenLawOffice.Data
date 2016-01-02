@@ -171,11 +171,11 @@ namespace OpenLawOffice.Data.Matters
             }
             if (courtTypeFilter.HasValue)
             {
-                sql += " AND \"court_type_filter\"=@CourtTypeFilter ";
+                sql += " AND \"court_type_id\"=@CourtTypeFilter ";
             }
             if (courtGeographicalJurisdictionFilter.HasValue)
             {
-                sql += " AND \"court_geographical_jurisdictionFilter\"=@CourtGeographicalJurisdictionFilter ";
+                sql += " AND \"court_geographical_jurisdiction_id\"=@CourtGeographicalJurisdictionFilter ";
             }
 
             if (active.HasValue)
@@ -445,18 +445,13 @@ namespace OpenLawOffice.Data.Matters
                 "\"caption_plaintiff_or_subject_regular\", \"caption_plaintiff_or_subject_long\", \"caption_other_party_short\", " +
                 "\"caption_other_party_regular\", \"caption_other_party_long\", " +
                 "\"utc_created\", \"utc_modified\", " +
-                "\"created_by_user_pid\", \"modified_by_user_pid\", \"case_number\", \"lead_attorney_contact_id\", \"bill_to_contact_id\") " +
+                "\"created_by_user_pid\", \"modified_by_user_pid\", \"case_number\", \"bill_to_contact_id\") " +
                 "VALUES (@Id, @MatterTypeId, @Title, @Active, @ParentId, @Synopsis, @MinimumCharge, @EstimatedCharge, @MaximumCharge, @DefaultBillingRateId, @BillingGroupId, @OverrideMatterRateWithEmployeeRate, " +
+                "@AttorneyForPartyTitle, @CourtTypeId, @CourtGeographicalJurisdictionId, @CourtSittingInCityId, @CaptionPlaintiffOrSubjectShort, " +
+                "@CaptionPlaintiffOrSubjectRegular, @CaptionPlaintiffOrSubjectLong, @CaptionOtherPartyShort, @CaptionOtherPartyRegular, @CaptionOtherPartyLong, " +
                 "@UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId, " +
-                "@CaseNumber, @LeadAttorneyContactId, @BillToContactId)",
+                "@CaseNumber, @BillToContactId)",
                 dbo);
-
-            MatterContact.Create(new Common.Models.Matters.MatterContact()
-            {
-                Matter = model,
-                Contact = new Common.Models.Contacts.Contact() { Id = dbo.LeadAttorneyContactId.Value },
-                Role = "Lead Attorney"
-            }, creator, conn, closeConnection);
 
             return model;
         }
@@ -491,28 +486,9 @@ namespace OpenLawOffice.Data.Matters
                 "\"caption_plaintiff_or_subject_regular\"=@CaptionPlaintiffOrSubjectRegular, \"caption_plaintiff_or_subject_long\"=@CaptionPlaintiffOrSubjectLong, " +
                 "\"caption_other_party_short\"=@CaptionOtherPartyShort, " +
                 "\"caption_other_party_regular\"=@CaptionOtherPartyRegular, \"caption_other_party_long\"=@CaptionOtherPartyLong, " +
-                "\"modified_by_user_pid\"=@ModifiedByUserPId, \"case_number\"=@CaseNumber, \"lead_attorney_contact_id\"=@LeadAttorneyContactId, \"bill_to_contact_id\"=@BillToContactId " +
+                "\"modified_by_user_pid\"=@ModifiedByUserPId, \"case_number\"=@CaseNumber, \"bill_to_contact_id\"=@BillToContactId " +
                 "WHERE \"id\"=@Id", dbo);
-
-            leadAttorneyMatches = MatterContact.ListForMatterByRole(dbo.Id, "Lead Attorney", conn, false);
-
-            if (leadAttorneyMatches.Count > 1)
-                throw new Exception("More than one Lead Attorney found.");
-            else if (leadAttorneyMatches.Count < 1)
-            {   // Insert only
-                MatterContact.Create(new Common.Models.Matters.MatterContact()
-                {
-                    Matter = model,
-                    Contact = new Common.Models.Contacts.Contact() { Id = dbo.LeadAttorneyContactId.Value },
-                    Role = "Lead Attorney"
-                }, modifier, conn, closeConnection);
-            }
-            else
-            {   // Replace
-                leadAttorneyMatches[0].Contact.Id = dbo.LeadAttorneyContactId.Value;
-                MatterContact.Edit(leadAttorneyMatches[0], modifier, conn, closeConnection);
-            }
-
+            
             return model;
         }
 

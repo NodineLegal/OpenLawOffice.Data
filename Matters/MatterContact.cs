@@ -69,25 +69,6 @@ namespace OpenLawOffice.Data.Matters
             return Get(matterId, contactId, t.Connection, false);
         }
 
-        public static List<Common.Models.Matters.MatterContact> ListForMatterByRole(
-            Guid matterId, 
-            string role,
-            IDbConnection conn = null, 
-            bool closeConnection = true)
-        {
-            return DataHelper.List<Common.Models.Matters.MatterContact, DBOs.Matters.MatterContact>(
-                "SELECT * FROM \"matter_contact\" WHERE \"matter_id\"=@MatterId AND \"role\"=@Role AND \"utc_disabled\" is null",
-                new { MatterId = matterId, Role = role }, conn, closeConnection);
-        }
-
-        public static List<Common.Models.Matters.MatterContact> ListForMatterByRole(
-            Transaction t,
-            Guid matterId,
-            string role)
-        {
-            return ListForMatterByRole(matterId, role, t.Connection, false);
-        }
-
         public static List<Common.Models.Matters.MatterContact> ListForMatter(
             Guid matterId,
             IDbConnection conn = null, 
@@ -128,12 +109,12 @@ namespace OpenLawOffice.Data.Matters
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"matter_contact\" (\"matter_id\", \"contact_id\", \"role\", " +
+            if (conn.Execute("INSERT INTO \"matter_contact\" (\"matter_id\", \"contact_id\", " +
                 "\"is_client\", \"is_client_contact\", \"is_appointed\", \"is_party\", \"party_title\", \"is_judge\", " +
                 "\"is_witness\", \"is_attorney\", \"attorney_for_contact_id\", \"is_lead_attorney\", \"is_support_staff\", " +
                 "\"support_staff_for_contact_id\", \"is_third_party_payor\", \"third_party_payor_for_contact_id\", " +
                 "\"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                "VALUES (@MatterId, @ContactId, @Role, @IsClient, @IsClientContact, @IsAppointed, @IsParty, " +
+                "VALUES (@MatterId, @ContactId, @IsClient, @IsClientContact, @IsAppointed, @IsParty, " +
                 "@PartyTitle, @IsJudge, @IsWitness, @IsAttorney, @AttorneyForContactId, @IsLeadAttorney, " +
                 "@IsSupportStaff, @SupportStaffForContactId, @IsThirdPartyPayor, @ThirdPartyPayorForContactId, " +
                 "@UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
@@ -166,7 +147,7 @@ namespace OpenLawOffice.Data.Matters
             conn = DataHelper.OpenIfNeeded(conn);
 
             conn.Execute("UPDATE \"matter_contact\" SET " +
-                "\"matter_id\"=@MatterId, \"contact_id\"=@ContactId, \"role\"=@Role, " +
+                "\"matter_id\"=@MatterId, \"contact_id\"=@ContactId, " +
                 "\"is_client\"=@IsClient, \"is_client_contact\"=@IsClientContact, \"is_appointed\"=@IsAppointed, " +
                 "\"is_party\"=@IsParty, \"party_title\"=@PartyTitle, \"is_judge\"=@IsJudge, " +
                 "\"is_witness\"=@IsWitness, \"is_attorney\"=@IsAttorney, " +

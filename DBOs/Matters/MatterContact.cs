@@ -39,9 +39,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
         [ColumnMapping(Name = "contact_id")]
         public int ContactId { get; set; }
 
-        [ColumnMapping(Name = "role")]
-        public string Role { get; set; }
-
         [ColumnMapping(Name = "is_client")]
         public bool IsClient { get; set; }
 
@@ -143,7 +140,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
                         IsStub = true
                     };
                 }))
-                .ForMember(dst => dst.Role, opt => opt.MapFrom(src => src.Role))
                 .ForMember(dst => dst.IsClient, opt => opt.MapFrom(src => src.IsClient))
                 .ForMember(dst => dst.IsClientContact, opt => opt.MapFrom(src => src.IsClientContact))
                 .ForMember(dst => dst.IsAppointed, opt => opt.MapFrom(src => src.IsAppointed))
@@ -226,7 +222,6 @@ namespace OpenLawOffice.Data.DBOs.Matters
                         return null;
                     return model.Contact.Id;
                 }))
-                .ForMember(dst => dst.Role, opt => opt.MapFrom(src => src.Role))
                 .ForMember(dst => dst.IsClient, opt => opt.MapFrom(src => src.IsClient))
                 .ForMember(dst => dst.IsClientContact, opt => opt.MapFrom(src => src.IsClientContact))
                 .ForMember(dst => dst.IsAppointed, opt => opt.MapFrom(src => src.IsAppointed))
