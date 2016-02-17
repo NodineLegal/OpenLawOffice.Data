@@ -192,6 +192,7 @@ namespace OpenLawOffice.Data.DBOs.Billing
                 .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dst => dst.BillToContactId, opt => opt.ResolveUsing(model =>
                 {
+                    if (model.BillTo == null || !model.BillTo.Id.HasValue) return null;
                     return model.BillTo.Id.Value;
                 }))
                 .ForMember(dst => dst.Date, opt => opt.MapFrom(src => src.Date))
