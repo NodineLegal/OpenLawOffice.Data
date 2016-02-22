@@ -95,7 +95,7 @@ namespace OpenLawOffice.Data.Billing
             bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Billing.InvoiceExpense, DBOs.Billing.InvoiceExpense>(
-                "SELECT * FROM \"invoice_expense\" WHERE \"invoice_id\"=@InvoiceId AND \"utc_disabled\" is NULL",
+                "SELECT \"invoice_expense\".* FROM \"invoice_expense\" JOIN \"expense\" ON \"invoice_expense\".\"expense_id\"=\"expense\".\"id\" WHERE \"invoice_id\"=@InvoiceId AND \"invoice_expense\".\"utc_disabled\" is NULL ORDER BY \"expense\".\"incurred\" ASC",
                 new { InvoiceId = invoiceId }, conn, closeConnection);
         }
 
@@ -112,7 +112,7 @@ namespace OpenLawOffice.Data.Billing
             bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Billing.InvoiceFee, DBOs.Billing.InvoiceFee>(
-                "SELECT * FROM \"invoice_fee\" WHERE \"invoice_id\"=@InvoiceId AND \"utc_disabled\" is NULL",
+                "SELECT \"invoice_fee\".* FROM \"invoice_fee\" JOIN \"fee\" ON \"invoice_fee\".\"fee_id\"=\"fee\".\"id\" WHERE \"invoice_id\"=@InvoiceId AND \"invoice_fee\".\"utc_disabled\" is NULL ORDER BY \"fee\".\"incurred\" ASC",
                 new { InvoiceId = invoiceId }, conn, closeConnection);
         }
 
@@ -129,7 +129,7 @@ namespace OpenLawOffice.Data.Billing
             bool closeConnection = true)
         {
             return DataHelper.List<Common.Models.Billing.InvoiceTime, DBOs.Billing.InvoiceTime>(
-                "SELECT * FROM \"invoice_time\" WHERE \"invoice_id\"=@InvoiceId AND \"utc_disabled\" is NULL",
+                "SELECT \"invoice_time\".* FROM \"invoice_time\" JOIN \"time\" ON \"invoice_time\".\"time_id\"=\"time\".\"id\" WHERE \"invoice_id\"=@InvoiceId AND \"invoice_time\".\"utc_disabled\" is NULL ORDER BY \"time\".\"start\" ASC",
                 new { InvoiceId = invoiceId }, conn, closeConnection);
         }
 
