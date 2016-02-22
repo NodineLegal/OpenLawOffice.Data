@@ -167,72 +167,19 @@ namespace OpenLawOffice.Data.Tasks
 
         public static List<Common.Models.Tasks.Task> GetTodoListFor(
             Common.Models.Account.Users user, 
-            List<Common.Models.Settings.TagFilter> tagFilter, 
             DateTime? start = null, 
             DateTime? stop = null,
             IDbConnection conn = null, 
             bool closeConnection = true)
         {
             string sql;
-
-            List<string> cats = new List<string>();
-            List<string> tags = new List<string>();
+            
             List<Npgsql.NpgsqlParameter> parms = new List<Npgsql.NpgsqlParameter>();
             List<Common.Models.Tasks.Task> list = new List<Common.Models.Tasks.Task>();
-
-            tagFilter.ForEach(x =>
-            {
-                if (!string.IsNullOrWhiteSpace(x.Category))
-                    cats.Add(x.Category.ToLower());
-                if (!string.IsNullOrWhiteSpace(x.Tag))
-                    tags.Add(x.Tag.ToLower());
-            });
-
+            
             sql = "SELECT * FROM \"task\" WHERE \"active\"=true AND " +
                   "\"id\" IN (SELECT \"task_id\" FROM \"task_responsible_user\" WHERE \"user_pid\"=@UserPId) ";
-
-            if (cats.Count > 0 || tags.Count > 0)
-            {
-                sql += " AND \"id\" IN (SELECT \"task_id\" FROM \"task_tag\" WHERE \"tag_category_id\" " +
-                        "IN (SELECT \"id\" FROM \"tag_category\" WHERE ";
-                
-                if (cats.Count > 0)
-                {
-                    sql += " LOWER(\"name\") IN (";
-
-                    cats.ForEach(x =>
-                    {
-                        string parmName = parms.Count.ToString();
-                        parms.Add(new Npgsql.NpgsqlParameter(parmName, NpgsqlTypes.NpgsqlDbType.Text) { Value = x });
-                        sql += ":" + parmName + ",";
-                    });
-
-                    sql = sql.TrimEnd(',') + ") ";
-                }
-
-                sql += ") ";
-            
-                if (tags.Count > 0)
-                {
-                    if (cats.Count > 0)
-                        sql += " AND ";
-
-                    sql += " LOWER(\"tag\") IN (";
-
-                    tags.ForEach(x =>
-                    {
-                        string parmName = parms.Count.ToString();
-                        parms.Add(new Npgsql.NpgsqlParameter(parmName, NpgsqlTypes.NpgsqlDbType.Text) { Value = x });
-                        sql += ":" + parmName + ",";
-                    });
-
-                    sql = sql.TrimEnd(',');
-                    sql += ")";                
-                }
-
-                sql += ") ";
-            }
-                
+                            
             sql += " AND \"utc_disabled\" is null ";
 
             if (start.HasValue)
@@ -287,83 +234,28 @@ namespace OpenLawOffice.Data.Tasks
         public static List<Common.Models.Tasks.Task> GetTodoListFor(
             Transaction t,
             Common.Models.Account.Users user,
-            List<Common.Models.Settings.TagFilter> tagFilter,
             DateTime? start = null,
             DateTime? stop = null)
         {
-            return GetTodoListFor(user, tagFilter, start, stop, t.Connection, false);
+            return GetTodoListFor(user, start, stop, t.Connection, false);
         }
 
 
         public static List<Common.Models.Tasks.Task> GetTodoListFor(
             Common.Models.Contacts.Contact contact, 
-            List<Common.Models.Settings.TagFilter> tagFilter, 
             DateTime? start = null, 
             DateTime? stop = null,
             IDbConnection conn = null, 
             bool closeConnection = true)
         {
             string sql;
-
-            List<string> cats = new List<string>();
-            List<string> tags = new List<string>();
+            
             List<Npgsql.NpgsqlParameter> parms = new List<Npgsql.NpgsqlParameter>();
             List<Common.Models.Tasks.Task> list = new List<Common.Models.Tasks.Task>();
-
-            tagFilter.ForEach(x =>
-            {
-                if (!string.IsNullOrWhiteSpace(x.Category))
-                    cats.Add(x.Category.ToLower());
-                if (!string.IsNullOrWhiteSpace(x.Tag))
-                    tags.Add(x.Tag.ToLower());
-            });
-
+            
             sql = "SELECT * FROM \"task\" WHERE \"active\"=true AND \"id\" IN (SELECT \"task_id\" FROM \"task_assigned_contact\" WHERE \"contact_id\"=@ContactId AND " +
                 "\"task_id\" NOT IN (SELECT \"task_id\" FROM \"task_assigned_contact\" WHERE \"assignment_type\"=2 AND \"contact_id\"!=@ContactId AND \"utc_disabled\" is null)) ";
-
-            if (cats.Count > 0 || tags.Count > 0)
-            {
-                sql += " AND \"id\" IN (SELECT \"task_id\" FROM \"task_tag\" WHERE \"tag_category_id\" " +
-                        "IN (SELECT \"id\" FROM \"tag_category\" WHERE ";
-                
-                
-                if (cats.Count > 0)
-                {
-                    sql += " LOWER(\"name\") IN (";
-
-                    cats.ForEach(x =>
-                    {
-                        string parmName = parms.Count.ToString();
-                        parms.Add(new Npgsql.NpgsqlParameter(parmName, NpgsqlTypes.NpgsqlDbType.Text) { Value = x });
-                        sql += ":" + parmName + ",";
-                    });
-
-                    sql = sql.TrimEnd(',') + ") ";
-                }
-
-                sql += ") ";
-            
-                if (tags.Count > 0)
-                {
-                    if (cats.Count > 0)
-                        sql += " AND ";
-
-                    sql += " LOWER(\"tag\") IN (";
-
-                    tags.ForEach(x =>
-                    {
-                        string parmName = parms.Count.ToString();
-                        parms.Add(new Npgsql.NpgsqlParameter(parmName, NpgsqlTypes.NpgsqlDbType.Text) { Value = x });
-                        sql += ":" + parmName + ",";
-                    });
-
-                    sql = sql.TrimEnd(',');
-                    sql += ")";
-                }
-
-                sql += ") ";
-            }                
-                
+                            
             sql += "AND \"utc_disabled\" is null ";
 
             if (start.HasValue)
@@ -423,79 +315,26 @@ namespace OpenLawOffice.Data.Tasks
            DateTime? start = null, 
            DateTime? stop = null)
         {
-            return GetTodoListFor(contact, tagFilter, start, stop, t.Connection, false);
+            return GetTodoListFor(contact, start, stop, t.Connection, false);
         }
 
         public static List<Common.Models.Tasks.Task> GetTodoListFor(
             Common.Models.Account.Users user, 
             Common.Models.Contacts.Contact contact, 
-            List<Common.Models.Settings.TagFilter> tagFilter, 
             DateTime? start = null, 
             DateTime? stop = null,
             IDbConnection conn = null, 
             bool closeConnection = true)
         {
             string sql;
-
-            List<string> cats = new List<string>();
-            List<string> tags = new List<string>();
+            
             List<Npgsql.NpgsqlParameter> parms = new List<Npgsql.NpgsqlParameter>();
             List<Common.Models.Tasks.Task> list = new List<Common.Models.Tasks.Task>();
-
-            tagFilter.ForEach(x =>
-            {
-                if (!string.IsNullOrWhiteSpace(x.Category))
-                    cats.Add(x.Category.ToLower());
-                if (!string.IsNullOrWhiteSpace(x.Tag))
-                    tags.Add(x.Tag.ToLower());
-            });
-
+            
             sql = "SELECT DISTINCT * FROM \"task\" WHERE \"active\"=true AND " +
                   "(\"id\" IN (SELECT \"task_id\" FROM \"task_responsible_user\" WHERE \"user_pid\"=@UserPId) " +
                   "OR \"id\" IN (SELECT \"task_id\" FROM \"task_assigned_contact\" WHERE \"contact_id\"=@ContactId)) ";
-
-            if (cats.Count > 0 || tags.Count > 0)
-            {
-                sql += " AND \"id\" IN (SELECT \"task_id\" FROM \"task_tag\" WHERE \"tag_category_id\" " +
-                        "IN (SELECT \"id\" FROM \"tag_category\" WHERE ";
-
-                if (cats.Count > 0)
-                {
-                    sql += " LOWER(\"name\") IN (";
-
-                    cats.ForEach(x =>
-                    {
-                        string parmName = parms.Count.ToString();
-                        parms.Add(new Npgsql.NpgsqlParameter(parmName, NpgsqlTypes.NpgsqlDbType.Text) { Value = x });
-                        sql += ":" + parmName + ",";
-                    });
-
-                    sql = sql.TrimEnd(',') + ") ";
-                }
-
-                sql += ") ";
-
-                if (tags.Count > 0)
-                {
-                    if (cats.Count > 0)
-                        sql += " AND ";
-
-                    sql += " LOWER(\"tag\") IN (";
-
-                    tags.ForEach(x =>
-                    {
-                        string parmName = parms.Count.ToString();
-                        parms.Add(new Npgsql.NpgsqlParameter(parmName, NpgsqlTypes.NpgsqlDbType.Text) { Value = x });
-                        sql += ":" + parmName + ",";
-                    });
-
-                    sql = sql.TrimEnd(',');
-                    sql += ")";
-                }
-
-                sql += ") ";
-            }
-
+            
             sql += " AND \"utc_disabled\" is null ";
 
             if (start.HasValue)
@@ -552,58 +391,24 @@ namespace OpenLawOffice.Data.Tasks
             Transaction t,
             Common.Models.Account.Users user,
             Common.Models.Contacts.Contact contact,
-            List<Common.Models.Settings.TagFilter> tagFilter,
             DateTime? start = null,
             DateTime? stop = null)
         {
-            return GetTodoListFor(user, contact, tagFilter, start, stop, t.Connection, false);
+            return GetTodoListFor(user, contact, start, stop, t.Connection, false);
         }
 
         public static List<Common.Models.Tasks.Task> GetTodoListForAll(
-            List<Common.Models.Settings.TagFilter> tagFilter, 
             DateTime? start = null, 
             DateTime? stop = null,
             IDbConnection conn = null, 
             bool closeConnection = true)
         {
             string sql;
-
-            List<string> cats = new List<string>();
-            List<string> tags = new List<string>();
+            
             List<Npgsql.NpgsqlParameter> parms = new List<Npgsql.NpgsqlParameter>();
             List<Common.Models.Tasks.Task> list = new List<Common.Models.Tasks.Task>();
-
-            tagFilter.ForEach(x =>
-            {
-                if (!string.IsNullOrWhiteSpace(x.Category))
-                    cats.Add(x.Category.ToLower());
-                if (!string.IsNullOrWhiteSpace(x.Tag))
-                    tags.Add(x.Tag.ToLower());
-            });
-
-            sql = "SELECT * FROM \"task\" WHERE \"active\"=true AND " +
-                "\"id\" IN (SELECT \"task_id\" FROM \"task_tag\" WHERE \"tag_category_id\" " +
-                "IN (SELECT \"id\" FROM \"tag_category\" WHERE LOWER(\"name\") IN (";
-
-            cats.ForEach(x =>
-            {
-                string parmName = parms.Count.ToString();
-                parms.Add(new Npgsql.NpgsqlParameter(parmName, NpgsqlTypes.NpgsqlDbType.Text) { Value = x });
-                sql += ":" + parmName + ",";
-            });
-
-            sql = sql.TrimEnd(',');
-            sql += ")) AND LOWER(\"tag\") IN (";
-
-            tags.ForEach(x =>
-            {
-                string parmName = parms.Count.ToString();
-                parms.Add(new Npgsql.NpgsqlParameter(parmName, NpgsqlTypes.NpgsqlDbType.Text) { Value = x });
-                sql += ":" + parmName + ",";
-            });
-
-            sql = sql.TrimEnd(',');
-            sql += ")) AND \"utc_disabled\" is null ";
+            
+            sql = "SELECT * FROM \"task\" WHERE \"active\"=true AND \"utc_disabled\" is null ";
 
             if (start.HasValue)
             {
@@ -659,7 +464,7 @@ namespace OpenLawOffice.Data.Tasks
             DateTime? start = null,
             DateTime? stop = null)
         {
-            return GetTodoListForAll(tagFilter, start, stop, t.Connection, false);
+            return GetTodoListForAll(start, stop, t.Connection, false);
         }
 
         public static List<Common.Models.Tasks.Task> ListChildren(

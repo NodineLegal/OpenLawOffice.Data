@@ -258,5 +258,31 @@ namespace OpenLawOffice.Data.Billing
         {
             return Edit(model, modifier, t.Connection, false);
         }
+
+        public static void Delete(
+            Common.Models.Billing.Invoice model,
+            Common.Models.Account.Users deleter,
+            IDbConnection conn = null,
+            bool closeConnection = true)
+        {
+            DBOs.Billing.Invoice dbo = Mapper.Map<DBOs.Billing.Invoice>(model);
+
+            conn = DataHelper.OpenIfNeeded(conn);
+            
+            conn.Execute("DELETE FROM \"invoice_expense\" WHERE \"invoice_id\"=@Id", dbo);
+            conn.Execute("DELETE FROM \"invoice_fee\" WHERE \"invoice_id\"=@Id", dbo);
+            conn.Execute("DELETE FROM \"invoice_time\" WHERE \"invoice_id\"=@Id", dbo);
+            conn.Execute("DELETE FROM \"invoice\" WHERE \"id\"=@Id", dbo);
+
+            DataHelper.Close(conn, closeConnection);
+        }
+
+        public static void Delete(
+            Transaction t,
+            Common.Models.Billing.Invoice model,
+            Common.Models.Account.Users deleter)
+        {
+            Delete(model, deleter, t.Connection, false);
+        }
     }
 }

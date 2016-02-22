@@ -472,7 +472,6 @@ namespace OpenLawOffice.Data.Matters
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
-            List<Common.Models.Matters.MatterContact> leadAttorneyMatches;
             DBOs.Matters.Matter dbo = Mapper.Map<DBOs.Matters.Matter>(model);
 
             conn = DataHelper.OpenIfNeeded(conn);
