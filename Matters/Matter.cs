@@ -498,5 +498,135 @@ namespace OpenLawOffice.Data.Matters
         {
             return Edit(model, modifier, t.Connection, false);
         }
+
+        public static List<Common.Models.Matters.Matter> ListAllActiveMatters(
+           IDbConnection conn = null,
+           bool closeConnection = true)
+        {
+            List<Common.Models.Matters.Matter> list;
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            list = DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
+                "SELECT * FROM \"matter\" WHERE \"utc_disabled\" is null AND \"active\"=TRUE",
+                null, conn, closeConnection);
+
+            DataHelper.Close(conn, closeConnection);
+
+            return list;
+        }
+
+        public static int CountAllActiveMatters(
+           IDbConnection conn = null,
+           bool closeConnection = true)
+        {
+            int val = -1;
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            val = conn.Query<int>("SELECT COUNT(*) FROM \"matter\" WHERE \"utc_disabled\" is null AND \"active\"=TRUE").SingleOrDefault();
+
+            DataHelper.Close(conn, closeConnection);
+
+            return val;
+        }
+
+        public static List<Common.Models.Matters.Matter> ListAllMattersWithoutActiveTasks(
+           IDbConnection conn = null,
+           bool closeConnection = true)
+        {
+            List<Common.Models.Matters.Matter> list;
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            list = DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
+                "SELECT * FROM \"matter\" WHERE \"utc_disabled\" is null AND \"active\"=TRUE AND \"id\" NOT IN (SELECT \"matter_id\" FROM \"task\" JOIN \"task_matter\" ON \"task\".\"id\"=\"task_matter\".\"task_id\" WHERE \"active\"=TRUE)",
+                null, conn, closeConnection);
+
+            DataHelper.Close(conn, closeConnection);
+
+            return list;
+        }
+
+        public static List<Common.Models.Matters.Matter> ListMattersWithoutActiveTasks(
+            int quantity,
+            IDbConnection conn = null,
+            bool closeConnection = true)
+        {
+            List<Common.Models.Matters.Matter> list;
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            list = DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
+                "SELECT * FROM \"matter\" WHERE \"utc_disabled\" is null AND \"active\"=TRUE AND \"id\" NOT IN (SELECT \"matter_id\" FROM \"task\" JOIN \"task_matter\" ON \"task\".\"id\"=\"task_matter\".\"task_id\" WHERE \"active\"=TRUE) ORDER BY random() limit @qty",
+                new { qty = quantity }, conn, closeConnection);
+
+            DataHelper.Close(conn, closeConnection);
+
+            return list;
+        }
+
+        public static int CountAllMattersWithoutActiveTasks(
+           IDbConnection conn = null,
+           bool closeConnection = true)
+        {
+            int val = -1;
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            val = conn.Query<int>("SELECT COUNT(*) FROM \"matter\" WHERE \"utc_disabled\" is null AND \"active\"=TRUE AND \"id\" NOT IN (SELECT \"matter_id\" FROM \"task\" JOIN \"task_matter\" ON \"task\".\"id\"=\"task_matter\".\"task_id\" WHERE \"active\"=TRUE)").SingleOrDefault();
+
+            DataHelper.Close(conn, closeConnection);
+
+            return val;
+        }
+
+        public static List<Tuple<int?, string, int>> CountListForMatterTypes(
+           IDbConnection conn = null,
+           bool closeConnection = true)
+        {
+            List<Tuple<int?, string, int>> ret = new List<Tuple<int?, string, int>>();
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            using (Npgsql.NpgsqlCommand dbCommand = (Npgsql.NpgsqlCommand)conn.CreateCommand())
+            {
+                dbCommand.CommandText =
+                    "SELECT	m.matter_type_id, t.title, COUNT(*) AS count FROM matter m LEFT JOIN matter_type t " +
+                    "ON t.id = m.matter_type_id GROUP BY matter_type_id, t.title ORDER BY count DESC";
+                
+                try
+                {
+                    dbCommand.Prepare();
+
+                    using (Npgsql.NpgsqlDataReader reader = dbCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int? matterTypeId;
+
+                            if (reader.IsDBNull(0))
+                                matterTypeId = null;
+                            else
+                                matterTypeId = reader.GetInt32(0);
+
+                            string title = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+                            int count = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
+
+                            ret.Add(new Tuple<int?, string, int>(matterTypeId, title, count));
+                        }
+                    }
+                }
+                catch (Npgsql.NpgsqlException e)
+                {
+                    System.Diagnostics.Trace.WriteLine(e.ToString());
+                    throw;
+                }
+            }
+
+            DataHelper.Close(conn, closeConnection);
+
+            return ret;
+        }
     }
 }
