@@ -107,5 +107,52 @@ namespace OpenLawOffice.Data.Billing
             
             return invoice;
         }
+
+        public static List<Tuple<int?, string, decimal>> ListTotalBillingsForContactsForLastYear(
+           IDbConnection conn = null,
+           bool closeConnection = true)
+        {
+            List<Tuple<int?, string, decimal>> ret = new List<Tuple<int?, string, decimal>>();
+
+            conn = DataHelper.OpenIfNeeded(conn);
+
+            using (Npgsql.NpgsqlCommand dbCommand = (Npgsql.NpgsqlCommand)conn.CreateCommand())
+            {
+                dbCommand.CommandText =
+                    "SELECT bill_to_contact_id as id, (SELECT display_name FROM contact WHERE id=bill_to_contact_id) as contact, SUM(total) as total FROM invoice WHERE date > date - INTERVAL '1 year' GROUP BY bill_to_contact_id ORDER BY total DESC";
+
+                try
+                {
+                    dbCommand.Prepare();
+
+                    using (Npgsql.NpgsqlDataReader reader = dbCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int? id;
+
+                            if (reader.IsDBNull(0))
+                                id = null;
+                            else
+                                id = reader.GetInt32(0);
+
+                            string contact = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+                            decimal amount = reader.IsDBNull(2) ? 0 : reader.GetDecimal(2);
+
+                            ret.Add(new Tuple<int?, string, decimal>(id, contact, amount));
+                        }
+                    }
+                }
+                catch (Npgsql.NpgsqlException e)
+                {
+                    System.Diagnostics.Trace.WriteLine(e.ToString());
+                    throw;
+                }
+            }
+
+            DataHelper.Close(conn, closeConnection);
+
+            return ret;
+        }
     }
 }
