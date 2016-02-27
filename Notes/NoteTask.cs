@@ -135,7 +135,7 @@ namespace OpenLawOffice.Data.Notes
                 if (conn.Execute("INSERT INTO \"note_task\" (\"id\", \"note_id\", \"task_id\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                     "VALUES (@Id, @NoteId, @TaskId, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
                     dbo) > 0)
-                    model.Id = conn.Query<DBOs.Notes.NoteTask>("SELECT currval(pg_get_serial_sequence('event_assigned_contact', 'id')) AS \"id\"").Single().Id;
+                    model.Id = conn.Query<DBOs.Notes.NoteTask>("SELECT currval(pg_get_serial_sequence('note_task', 'id')) AS \"id\"").Single().Id;
             }
 
             DataHelper.Close(conn, closeConnection);
