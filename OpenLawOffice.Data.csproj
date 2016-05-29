@@ -63,6 +63,12 @@
   <ItemGroup>
     <Compile Include="Account\UserRole.cs" />
     <Compile Include="Account\Users.cs" />
+    <Compile Include="Assets\Asset.cs" />
+    <Compile Include="Assets\AssetMatter.cs" />
+    <Compile Include="Assets\AssetTag.cs" />
+    <Compile Include="Assets\File.cs" />
+    <Compile Include="Assets\Tag.cs" />
+    <Compile Include="Assets\Version.cs" />
     <Compile Include="Base.cs" />
     <Compile Include="Billing\Billing.cs" />
     <Compile Include="Billing\BillingGroup.cs" />
@@ -77,6 +83,12 @@
     <Compile Include="Billing\InvoiceTime.cs" />
     <Compile Include="DBOs\Account\UserRole.cs" />
     <Compile Include="DBOs\Account\Users.cs" />
+    <Compile Include="DBOs\Assets\Asset.cs" />
+    <Compile Include="DBOs\Assets\AssetMatter.cs" />
+    <Compile Include="DBOs\Assets\AssetTag.cs" />
+    <Compile Include="DBOs\Assets\File.cs" />
+    <Compile Include="DBOs\Assets\Tag.cs" />
+    <Compile Include="DBOs\Assets\Version.cs" />
     <Compile Include="DBOs\Billing\BillingGroup.cs" />
     <Compile Include="DBOs\Billing\BillingRate.cs" />
     <Compile Include="DBOs\Billing\Expense.cs" />
