@@ -42,6 +42,9 @@ namespace OpenLawOffice.Data.DBOs.Timing
         [ColumnMapping(Name = "worker_contact_id")]
         public int WorkerContactId { get; set; }
 
+        [ColumnMapping(Name = "time_category_id")]
+        public int? TimeCategoryId { get; set; }
+
         [ColumnMapping(Name = "details")]
         public string Details { get; set; }
 
@@ -107,6 +110,14 @@ namespace OpenLawOffice.Data.DBOs.Timing
                         IsStub = true
                     };
                 }))
+                .ForMember(dst => dst.TimeCategory, opt => opt.ResolveUsing(db =>
+                {
+                    return new Common.Models.Timing.TimeCategory()
+                    {
+                        Id = db.TimeCategoryId,
+                        IsStub = true
+                    };
+                }))
                 .ForMember(dst => dst.Details, opt => opt.MapFrom(src => src.Details))
                 .ForMember(dst => dst.Billable, opt => opt.MapFrom(src => src.Billable));
 
@@ -153,6 +164,11 @@ namespace OpenLawOffice.Data.DBOs.Timing
                 {
                     if (model.Worker == null) return null;
                     return model.Worker.Id;
+                }))
+                .ForMember(dst => dst.TimeCategoryId, opt => opt.ResolveUsing(model =>
+                {
+                    if (model.TimeCategory == null) return null;
+                    return model.TimeCategory.Id;
                 }))
                 .ForMember(dst => dst.Details, opt => opt.MapFrom(src => src.Details))
                 .ForMember(dst => dst.Billable, opt => opt.MapFrom(src => src.Billable));

@@ -253,7 +253,7 @@ namespace OpenLawOffice.Data.Tasks
             List<Npgsql.NpgsqlParameter> parms = new List<Npgsql.NpgsqlParameter>();
             List<Common.Models.Tasks.Task> list = new List<Common.Models.Tasks.Task>();
             
-            sql = "SELECT * FROM \"task\" WHERE \"active\"=true AND \"id\" IN (SELECT \"task_id\" FROM \"task_assigned_contact\" WHERE \"contact_id\"=@ContactId AND " +
+            sql = "SELECT * FROM \"task\" WHERE \"active\"=true AND \"id\" IN (SELECT \"task_id\" FROM \"task_assigned_contact\" WHERE \"contact_id\"=@ContactId AND \"utc_disabled\" is null AND " +
                 "\"task_id\" NOT IN (SELECT \"task_id\" FROM \"task_assigned_contact\" WHERE \"assignment_type\"=2 AND \"contact_id\"!=@ContactId AND \"utc_disabled\" is null)) ";
                             
             sql += "AND \"utc_disabled\" is null ";

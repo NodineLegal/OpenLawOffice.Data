@@ -113,6 +113,7 @@
     <Compile Include="DBOs\Matters\MatterType.cs" />
     <Compile Include="DBOs\Notes\NoteNotification.cs" />
     <Compile Include="DBOs\Tasks\TaskTemplate.cs" />
+    <Compile Include="DBOs\Timing\TimeCategory.cs" />
     <Compile Include="Events\Event.cs" />
     <Compile Include="DataHelper.cs" />
     <Compile Include="Contacts\Contact.cs" />
@@ -190,6 +191,7 @@
     <Compile Include="Tasks\TaskTemplate.cs" />
     <Compile Include="Tasks\TaskTime.cs" />
     <Compile Include="Timing\Time.cs" />
+    <Compile Include="Timing\TimeCategory.cs" />
     <Compile Include="Transaction.cs" />
   </ItemGroup>
   <ItemGroup>

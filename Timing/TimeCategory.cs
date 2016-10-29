@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="CourtType.cs" company="Nodine Legal, LLC">
+// <copyright file="TimeCategory.cs" company="Nodine Legal, LLC">
 // Licensed to Nodine Legal, LLC under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -19,7 +19,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace OpenLawOffice.Data.Matters
+namespace OpenLawOffice.Data.Timing
 {
     using System;
     using AutoMapper;
@@ -28,82 +28,82 @@ namespace OpenLawOffice.Data.Matters
     using Dapper;
     using System.Linq;
 
-    public static class CourtType
+    public static class TimeCategory
     {
-        public static Common.Models.Matters.CourtType Get(
+        public static Common.Models.Timing.TimeCategory Get(
             int id,
             IDbConnection conn = null,
             bool closeConnection = true)
         {
-            return DataHelper.Get<Common.Models.Matters.CourtType, DBOs.Matters.CourtType>(
-                "SELECT * FROM \"court_type\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
+            return DataHelper.Get<Common.Models.Timing.TimeCategory, DBOs.Timing.TimeCategory>(
+                "SELECT * FROM \"time_category\" WHERE \"id\"=@id AND \"utc_disabled\" is null",
                 new { id = id }, conn, closeConnection);
         }
 
-        public static Common.Models.Matters.CourtType Get(
+        public static Common.Models.Timing.TimeCategory Get(
             Transaction t,
             int id)
         {
             return Get(id, t.Connection, false);
         }
 
-        public static List<Common.Models.Matters.CourtType> List(
+        public static List<Common.Models.Timing.TimeCategory> List(
             IDbConnection conn = null,
             bool closeConnection = true)
         {
-            return DataHelper.List<Common.Models.Matters.CourtType, DBOs.Matters.CourtType>(
-                "SELECT * FROM \"court_type\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
+            return DataHelper.List<Common.Models.Timing.TimeCategory, DBOs.Timing.TimeCategory>(
+                "SELECT * FROM \"time_category\" WHERE \"utc_disabled\" is null", null, conn, closeConnection);
         }
 
-        public static List<Common.Models.Matters.CourtType> List(
+        public static List<Common.Models.Timing.TimeCategory> List(
             Transaction t)
         {
             return List(t.Connection, false);
         }
 
-        public static Common.Models.Matters.CourtType Create(
-            Common.Models.Matters.CourtType model,
+        public static Common.Models.Timing.TimeCategory Create(
+            Common.Models.Timing.TimeCategory model,
             Common.Models.Account.Users creator,
             IDbConnection conn = null,
             bool closeConnection = true)
         {
             model.CreatedBy = model.ModifiedBy = creator;
             model.Created = model.Modified = DateTime.UtcNow;
-            DBOs.Matters.CourtType dbo = Mapper.Map<DBOs.Matters.CourtType>(model);
+            DBOs.Timing.TimeCategory dbo = Mapper.Map<DBOs.Timing.TimeCategory>(model);
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            if (conn.Execute("INSERT INTO \"court_type\" (\"title\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+            if (conn.Execute("INSERT INTO \"time_category\" (\"title\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
                 "VALUES (@Title, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
                 dbo) > 0)
-                model.Id = conn.Query<DBOs.Matters.CourtType>("SELECT currval(pg_get_serial_sequence('court_type', 'id')) AS \"id\"").Single().Id;
+                model.Id = conn.Query<DBOs.Timing.TimeCategory>("SELECT currval(pg_get_serial_sequence('time_category', 'id')) AS \"id\"").Single().Id;
 
             DataHelper.Close(conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.CourtType Create(
+        public static Common.Models.Timing.TimeCategory Create(
             Transaction t,
-            Common.Models.Matters.CourtType model,
+            Common.Models.Timing.TimeCategory model,
             Common.Models.Account.Users creator)
         {
             return Create(model, creator, t.Connection, false);
         }
 
-        public static Common.Models.Matters.CourtType Edit(
-            Common.Models.Matters.CourtType model,
+        public static Common.Models.Timing.TimeCategory Edit(
+            Common.Models.Timing.TimeCategory model,
             Common.Models.Account.Users modifier,
             IDbConnection conn = null,
             bool closeConnection = true)
         {
             model.ModifiedBy = modifier;
             model.Modified = DateTime.UtcNow;
-            DBOs.Matters.CourtType dbo = Mapper.Map<DBOs.Matters.CourtType>(model);
+            DBOs.Timing.TimeCategory dbo = Mapper.Map<DBOs.Timing.TimeCategory>(model);
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            conn.Execute("UPDATE \"court_type\" SET " +
+            conn.Execute("UPDATE \"time_category\" SET " +
                 "\"title\"=@Title, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
                 "WHERE \"id\"=@Id", dbo);
 
@@ -112,16 +112,16 @@ namespace OpenLawOffice.Data.Matters
             return model;
         }
 
-        public static Common.Models.Matters.CourtType Edit(
+        public static Common.Models.Timing.TimeCategory Edit(
             Transaction t,
-            Common.Models.Matters.CourtType model,
+            Common.Models.Timing.TimeCategory model,
             Common.Models.Account.Users modifier)
         {
             return Edit(model, modifier, t.Connection, false);
         }
 
-        public static Common.Models.Matters.CourtType Disable(
-            Common.Models.Matters.CourtType model,
+        public static Common.Models.Timing.TimeCategory Disable(
+            Common.Models.Timing.TimeCategory model,
             Common.Models.Account.Users disabler,
             IDbConnection conn = null,
             bool closeConnection = true)
@@ -129,15 +129,15 @@ namespace OpenLawOffice.Data.Matters
             model.DisabledBy = disabler;
             model.Disabled = DateTime.UtcNow;
 
-            DataHelper.Disable<Common.Models.Matters.CourtType,
-                DBOs.Matters.CourtType>("court_type", disabler.PId.Value, model.Id, conn, closeConnection);
+            DataHelper.Disable<Common.Models.Timing.TimeCategory,
+                DBOs.Timing.TimeCategory>("time_category", disabler.PId.Value, model.Id, conn, closeConnection);
 
             return model;
         }
 
-        public static Common.Models.Matters.CourtType Disable(
+        public static Common.Models.Timing.TimeCategory Disable(
             Transaction t,
-            Common.Models.Matters.CourtType model,
+            Common.Models.Timing.TimeCategory model,
             Common.Models.Account.Users disabler)
         {
             return Disable(model, disabler, t.Connection, false);

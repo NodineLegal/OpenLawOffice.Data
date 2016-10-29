@@ -428,8 +428,11 @@ namespace OpenLawOffice.Data.Timing
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            conn.Execute("INSERT INTO \"time\" (\"id\", \"start\", \"stop\", \"worker_contact_id\", \"details\", \"billable\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
-                "VALUES (@Id, @Start, @Stop, @WorkerContactId, @Details, @Billable, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
+            if (dbo.TimeCategoryId.HasValue && dbo.TimeCategoryId.Value == 0)
+                dbo.TimeCategoryId = null;
+
+            conn.Execute("INSERT INTO \"time\" (\"id\", \"start\", \"stop\", \"worker_contact_id\", \"time_category_id\", \"details\", \"billable\", \"utc_created\", \"utc_modified\", \"created_by_user_pid\", \"modified_by_user_pid\") " +
+                "VALUES (@Id, @Start, @Stop, @WorkerContactId, @TimeCategoryId, @Details, @Billable, @UtcCreated, @UtcModified, @CreatedByUserPId, @ModifiedByUserPId)",
                 dbo);
 
             DataHelper.Close(conn, closeConnection);
@@ -457,8 +460,11 @@ namespace OpenLawOffice.Data.Timing
 
             conn = DataHelper.OpenIfNeeded(conn);
 
+            if (dbo.TimeCategoryId.HasValue && dbo.TimeCategoryId.Value == 0)
+                dbo.TimeCategoryId = null;
+
             conn.Execute("UPDATE \"time\" SET " +
-                "\"start\"=@Start, \"stop\"=@Stop, \"worker_contact_id\"=@WorkerContactId, \"details\"=@Details, \"billable\"=@Billable, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
+                "\"start\"=@Start, \"stop\"=@Stop, \"worker_contact_id\"=@WorkerContactId, \"time_category_id\"=@TimeCategoryId, \"details\"=@Details, \"billable\"=@Billable, \"utc_modified\"=@UtcModified, \"modified_by_user_pid\"=@ModifiedByUserPId " +
                 "WHERE \"id\"=@Id", dbo);
 
             DataHelper.Close(conn, closeConnection);
