@@ -549,17 +549,19 @@ namespace OpenLawOffice.Data.Matters
         }
 
         public static List<Common.Models.Matters.Matter> ListMattersWithoutActiveTasks(
-            int quantity,
+            int? quantity = null,
             IDbConnection conn = null,
             bool closeConnection = true)
         {
+            string sql = "";
             List<Common.Models.Matters.Matter> list;
 
             conn = DataHelper.OpenIfNeeded(conn);
 
-            list = DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(
-                "SELECT * FROM \"matter\" WHERE \"utc_disabled\" is null AND \"active\"=TRUE AND \"id\" NOT IN (SELECT \"matter_id\" FROM \"task\" JOIN \"task_matter\" ON \"task\".\"id\"=\"task_matter\".\"task_id\" WHERE \"active\"=TRUE) ORDER BY random() limit @qty",
-                new { qty = quantity }, conn, closeConnection);
+            sql = "SELECT * FROM \"matter\" WHERE \"utc_disabled\" is null AND \"active\"=TRUE AND \"id\" NOT IN (SELECT \"matter_id\" FROM \"task\" JOIN \"task_matter\" ON \"task\".\"id\"=\"task_matter\".\"task_id\" WHERE \"active\"=TRUE) ORDER BY random() ";
+            if (quantity != null && quantity.HasValue && quantity.Value > 0)
+                sql += "limit @qty";
+            list = DataHelper.List<Common.Models.Matters.Matter, DBOs.Matters.Matter>(sql, new { qty = quantity }, conn, closeConnection);
 
             DataHelper.Close(conn, closeConnection);
 
